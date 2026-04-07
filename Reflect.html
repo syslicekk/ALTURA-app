@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ALTURA — Reflect</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070707;--surface:#0f0f0f;--surface2:#161616;--surface3:#1c1c1c;
+      --border:rgba(255,255,255,0.06);--text:#f0ede8;--text-muted:#555;--text-dim:#282828;
+      --accent:#c8f53e;--accent-dim:rgba(200,245,62,0.1);--accent-glow:rgba(200,245,62,0.22);
+      --gold:#f5c842;--white:#ffffff;
+      --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:8px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.5;}
+    .app{max-width:480px;margin:0 auto;padding:0 0 90px;position:relative;z-index:1;}
+
+    /* ── PAGE HEADER ── */
+    .page-header{
+      padding:24px 20px 16px;
+      position:sticky;top:0;z-index:200;
+      background:linear-gradient(to bottom,rgba(7,7,7,1) 65%,rgba(7,7,7,0));
+    }
+    .page-back{
+      display:inline-flex;align-items:center;gap:6px;
+      font-size:.65rem;color:var(--text-muted);text-decoration:none;
+      text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
+      transition:color .15s;
+    }
+    .page-back:hover{color:var(--text);}
+    .page-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:var(--white);}
+    .page-sub{font-size:.7rem;color:var(--text-muted);margin-top:2px;letter-spacing:.3px;}
+
+    /* ── CARDS WRAP ── */
+    .section{padding:0 16px;margin-bottom:12px;}
+
+    /* ── CARD BASE ── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 20px 18px;}
+    .card+.card{margin-top:10px;}
+    .card-label{font-size:.62rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:14px;}
+    .card-title{font-family:'DM Serif Display',serif;font-size:1.1rem;line-height:1.3;color:var(--white);margin-bottom:14px;}
+
+    /* ── MOOD CHECK-IN ── */
+    .checkin-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+    .checkin-date-badge{font-size:.62rem;color:var(--text-muted);background:var(--surface2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
+    .mood-row{display:flex;gap:8px;margin-bottom:14px;}
+    .mood-btn{flex:1;aspect-ratio:1;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface2);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;position:relative;}
+    .mood-btn:hover{border-color:rgba(255,255,255,.15);transform:scale(1.07);}
+    .mood-btn.selected{border-color:var(--accent);background:var(--accent-dim);box-shadow:0 0 0 1px var(--accent-dim);}
+    .mood-label-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+    .mood-label{font-size:.52rem;text-align:center;color:var(--text-muted);letter-spacing:.3px;}
+    .note-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;resize:none;transition:border-color .15s;min-height:72px;line-height:1.5;}
+    .note-input:focus{border-color:rgba(255,255,255,.12);}
+    .note-input::placeholder{color:var(--text-muted);}
+    .save-btn{margin-top:10px;width:100%;background:var(--accent);border:none;border-radius:var(--r-md);padding:13px;color:#000;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .15s;}
+    .save-btn:hover{background:#d4f74a;}
+    .save-btn.saved{background:var(--surface2);color:var(--accent);border:1px solid rgba(200,245,62,.3);}
+
+    /* ── WELLBEING SLIDERS ── */
+    .wb-grid{display:flex;flex-direction:column;gap:14px;}
+    .wb-item{}
+    .wb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+    .wb-name{font-size:.8rem;color:var(--text);font-weight:400;}
+    .wb-val{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--accent);}
+    .wb-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;outline:none;cursor:pointer;background:var(--surface2);}
+    .wb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 0 3px rgba(200,245,62,.15);}
+    .wb-slider::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:none;}
+    .wb-save{margin-top:14px;width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:11px;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;transition:all .15s;}
+    .wb-save:hover{color:var(--text);}
+    .wb-save.saved{border-color:rgba(200,245,62,.3);color:var(--accent);}
+
+    /* ── INTENTIONS ── */
+    .intentions-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+    .intention-row{display:flex;align-items:center;gap:10px;}
+    .intention-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .intention-check.done{background:var(--accent);border-color:var(--accent);}
+    .intention-check.done svg{opacity:1;}
+    .intention-check svg{opacity:0;width:8px;height:6px;transition:opacity .15s;}
+    .intention-text{font-size:.85rem;color:var(--text);flex:1;word-break:break-word;line-height:1.35;}
+    .intention-text.done-text{color:var(--text-muted);text-decoration:line-through;text-decoration-color:var(--text-dim);}
+    .intention-del{background:none;border:none;color:transparent;cursor:pointer;font-size:.75rem;padding:3px;transition:color .15s;}
+    .intention-row:hover .intention-del{color:var(--text-dim);}
+    .intention-del:hover{color:#ff5555!important;}
+    .intention-add{display:flex;gap:8px;}
+    .intention-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .15s;}
+    .intention-input:focus{border-color:rgba(255,255,255,.12);}
+    .intention-input::placeholder{color:var(--text-muted);}
+    .intention-add-btn{background:var(--accent);border:none;border-radius:var(--r-md);padding:11px 16px;color:#000;font-size:.82rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:background .15s;}
+    .intention-add-btn:hover{background:#d4f74a;}
+
+    /* ── GRATITUDE ── */
+    .gratitude-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+    .gratitude-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 13px;font-size:.85rem;color:var(--text);line-height:1.4;display:flex;align-items:flex-start;gap:8px;}
+    .gratitude-item .num{color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:.9rem;flex-shrink:0;margin-top:1px;}
+    .gratitude-item .del-g{background:none;border:none;color:transparent;cursor:pointer;font-size:.7rem;padding:2px;margin-left:auto;transition:color .15s;flex-shrink:0;}
+    .gratitude-item:hover .del-g{color:var(--text-dim);}
+    .del-g:hover{color:#ff5555!important;}
+    .gratitude-add{display:flex;gap:8px;}
+    .gratitude-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .15s;}
+    .gratitude-input:focus{border-color:rgba(255,255,255,.12);}
+    .gratitude-input::placeholder{color:var(--text-muted);}
+    .gratitude-add-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 14px;color:var(--text-muted);font-size:.82rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s;}
+    .gratitude-add-btn:hover{color:var(--text);}
+
+    /* ── MOOD HISTORY ── */
+    .history-list{display:flex;flex-direction:column;gap:1px;}
+    .history-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+    .history-row:last-child{border-bottom:none;}
+    .history-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+    .history-left{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+    .history-date{font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;}
+    .history-note{font-size:.82rem;color:var(--text);line-height:1.4;word-break:break-word;}
+    .history-mood-emoji{font-size:1rem;}
+    .history-wb{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
+    .wb-pip{font-size:.56rem;color:var(--text-muted);background:var(--surface2);padding:2px 7px;border-radius:20px;border:1px solid var(--border);}
+    .empty-history{text-align:center;padding:28px 0;color:var(--text-muted);font-size:.8rem;}
+
+    /* ── HUB NAV ── */
+    .hub-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(10,10,10,.95);border-top:1px solid var(--border);backdrop-filter:blur(20px);display:flex;z-index:300;padding:0 0 env(safe-area-inset-bottom,0);}
+    .hub-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px 14px;cursor:pointer;font-size:.6rem;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);transition:color .15s;text-decoration:none;border:none;background:none;font-family:'DM Sans',sans-serif;}
+    .hub-item:hover{color:var(--text);}
+    .hub-item.active{color:var(--accent);}
+    .hub-icon{font-size:1.2rem;line-height:1;}
+    .hub-item.active .hub-icon{filter:drop-shadow(0 0 6px rgba(200,245,62,.5));}
+    ::-webkit-scrollbar{width:0;}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="page-header">
+    <a class="page-back" href="index.html">← Back</a>
+    <div class="page-title">Reflect</div>
+    <div class="page-sub" id="reflectDate"></div>
+  </div>
+
+  <div class="section">
+
+    <!-- DAILY CHECK-IN -->
+    <div class="card" id="checkinCard">
+      <div class="card-label">Daily Check-in</div>
+      <div class="checkin-meta">
+        <div class="card-title" style="margin-bottom:0;">How are you feeling?</div>
+        <span class="checkin-date-badge" id="checkinDateBadge"></span>
+      </div>
+      <div style="height:14px;"></div>
+      <div class="mood-row" id="moodRow">
+        <button class="mood-btn" data-mood="1">😞</button>
+        <button class="mood-btn" data-mood="2">😐</button>
+        <button class="mood-btn" data-mood="3">🙂</button>
+        <button class="mood-btn" data-mood="4">😄</button>
+        <button class="mood-btn" data-mood="5">🔥</button>
+      </div>
+      <div class="mood-label-row">
+        <span class="mood-label">Rough</span>
+        <span class="mood-label">Meh</span>
+        <span class="mood-label">Okay</span>
+        <span class="mood-label">Good</span>
+        <span class="mood-label">Fired up</span>
+      </div>
+      <textarea class="note-input" id="noteInput" placeholder="What's on your mind today? (optional)" rows="3" maxlength="280"></textarea>
+      <button class="save-btn" id="checkinSaveBtn">Save Check-in</button>
+    </div>
+
+    <!-- WELLBEING ── -->
+    <div class="card" style="margin-top:10px;">
+      <div class="card-label">Wellbeing</div>
+      <div class="card-title">Rate today's pillars</div>
+      <div class="wb-grid" id="wbGrid"></div>
+      <button class="wb-save" id="wbSaveBtn">Save Wellbeing</button>
+    </div>
+
+    <!-- INTENTIONS ── -->
+    <div class="card" style="margin-top:10px;">
+      <div class="card-label">Today's Intentions</div>
+      <div class="card-title">What must happen today?</div>
+      <div class="intentions-list" id="intentionsList"></div>
+      <div class="intention-add">
+        <input class="intention-input" type="text" id="intentionInput" placeholder="Add an intention…" maxlength="80" autocomplete="off">
+        <button class="intention-add-btn" id="intentionAddBtn">Add</button>
+      </div>
+    </div>
+
+    <!-- GRATITUDE ── -->
+    <div class="card" style="margin-top:10px;">
+      <div class="card-label">Gratitude</div>
+      <div class="card-title">Three things you're grateful for</div>
+      <div class="gratitude-list" id="gratitudeList"></div>
+      <div class="gratitude-add">
+        <input class="gratitude-input" type="text" id="gratitudeInput" placeholder="I'm grateful for…" maxlength="120" autocomplete="off">
+        <button class="gratitude-add-btn" id="gratitudeAddBtn">Add</button>
+      </div>
+    </div>
+
+    <!-- MOOD HISTORY -->
+    <div class="card" style="margin-top:10px;margin-bottom:10px;">
+      <div class="card-label">Recent History</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- HUB NAV -->
+<nav class="hub-nav">
+  <a class="hub-item" href="index.html"><span class="hub-icon">◎</span><span>Today</span></a>
+  <a class="hub-item active" href="Reflect.html"><span class="hub-icon">✦</span><span>Reflect</span></a>
+  <a class="hub-item" href="Statistics.html"><span class="hub-icon">▦</span><span>Statistics</span></a>
+</nav>
+
+<script>
+  const STORAGE_KEY='altura_v5';
+  const pad=n=>String(n).padStart(2,'0');
+  function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+  function isFuture(key){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=key.split('-').map(Number);return new Date(y,m-1,d)>t;}
+  function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+  const moodColors=['','#ff6b6b','#ffa94d','#ffe066','#74c0fc','#c8f53e'];
+  const moodLabels=['','Rough','Meh','Okay','Good','Fired up'];
+
+  const WELLBEING_ITEMS=[
+    {id:'energy',label:'Energy',icon:'⚡'},
+    {id:'focus',label:'Focus',icon:'🎯'},
+    {id:'sleep',label:'Sleep',icon:'🌙'},
+    {id:'stress',label:'Stress (low=good)',icon:'🧘'},
+    {id:'body',label:'Body feeling',icon:'💪'},
+    {id:'social',label:'Social connection',icon:'🤝'},
+  ];
+
+  let moodLog={},wbLog={},intentionsLog={},gratitudeLog={};
+  let habits=[],completions={},bestStreakOverall=0;
+
+  function loadData(){
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){try{const d=JSON.parse(raw);if(d.moodLog)moodLog=d.moodLog;if(d.wbLog)wbLog=d.wbLog;if(d.intentionsLog)intentionsLog=d.intentionsLog;if(d.gratitudeLog)gratitudeLog=d.gratitudeLog;if(d.habits)habits=d.habits;if(d.completions)completions=d.completions;if(typeof d.bestStreakOverall==='number')bestStreakOverall=d.bestStreakOverall;}catch(e){}}
+  }
+
+  function saveData(){
+    const raw=localStorage.getItem(STORAGE_KEY);
+    let existing={};
+    if(raw){try{existing=JSON.parse(raw);}catch(e){}}
+    existing.moodLog=moodLog;
+    existing.wbLog=wbLog;
+    existing.intentionsLog=intentionsLog;
+    existing.gratitudeLog=gratitudeLog;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(existing));
+  }
+
+  /* ── DATE LABELS ── */
+  function initDates(){
+    const now=new Date();
+    document.getElementById('reflectDate').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+    document.getElementById('checkinDateBadge').textContent=now.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  }
+
+  /* ── MOOD CHECK-IN ── */
+  function initCheckin(){
+    const key=getTodayKey();
+    const entry=moodLog[key];
+    document.querySelectorAll('.mood-btn').forEach(btn=>{
+      btn.classList.toggle('selected',!!(entry&&parseInt(btn.dataset.mood)===entry.mood));
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    if(entry){
+      document.getElementById('noteInput').value=entry.note||'';
+      const sb=document.getElementById('checkinSaveBtn');
+      sb.textContent='Update Check-in';sb.classList.add('saved');
+    }
+  }
+
+  document.getElementById('checkinSaveBtn').addEventListener('click',()=>{
+    const key=getTodayKey();
+    const sel=document.querySelector('.mood-btn.selected');
+    if(!sel)return;
+    moodLog[key]={mood:parseInt(sel.dataset.mood),note:document.getElementById('noteInput').value.trim()};
+    const sb=document.getElementById('checkinSaveBtn');
+    sb.textContent='Saved ✓';sb.classList.add('saved');
+    setTimeout(()=>{sb.textContent='Update Check-in';},1400);
+    saveData();renderHistory();
+  });
+
+  /* ── WELLBEING SLIDERS ── */
+  function initWellbeing(){
+    const key=getTodayKey();
+    const entry=wbLog[key]||{};
+    const grid=document.getElementById('wbGrid');
+    grid.innerHTML='';
+    WELLBEING_ITEMS.forEach(item=>{
+      const val=entry[item.id]!==undefined?entry[item.id]:5;
+      const div=document.createElement('div');
+      div.className='wb-item';
+      div.innerHTML=`
+        <div class="wb-top">
+          <span class="wb-name">${item.icon} ${item.label}</span>
+          <span class="wb-val" id="wbVal_${item.id}">${val}</span>
+        </div>
+        <input class="wb-slider" type="range" min="1" max="10" value="${val}" id="wbSlider_${item.id}">`;
+      grid.appendChild(div);
+      const slider=div.querySelector(`#wbSlider_${item.id}`);
+      const valEl=div.querySelector(`#wbVal_${item.id}`);
+      // dynamic fill via CSS gradient
+      function updateSlider(){
+        const pct=(slider.value-1)/9*100;
+        slider.style.background=`linear-gradient(to right,var(--accent) ${pct}%,var(--surface2) ${pct}%)`;
+        valEl.textContent=slider.value;
+      }
+      slider.addEventListener('input',updateSlider);
+      updateSlider();
+    });
+  }
+
+  document.getElementById('wbSaveBtn').addEventListener('click',()=>{
+    const key=getTodayKey();
+    if(!wbLog[key])wbLog[key]={};
+    WELLBEING_ITEMS.forEach(item=>{
+      wbLog[key][item.id]=parseInt(document.getElementById(`wbSlider_${item.id}`).value);
+    });
+    const btn=document.getElementById('wbSaveBtn');
+    btn.textContent='Saved ✓';btn.classList.add('saved');
+    setTimeout(()=>{btn.textContent='Save Wellbeing';btn.classList.remove('saved');},1400);
+    saveData();renderHistory();
+  });
+
+  /* ── INTENTIONS ── */
+  function renderIntentions(){
+    const key=getTodayKey();
+    const list=intentionsLog[key]||[];
+    const container=document.getElementById('intentionsList');
+    container.innerHTML='';
+    list.forEach((item,i)=>{
+      const row=document.createElement('div');row.className='intention-row';
+      row.innerHTML=`
+        <div class="intention-check${item.done?' done':''}" data-idx="${i}">
+          <svg viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="intention-text${item.done?' done-text':''}">${escHtml(item.text)}</span>
+        <button class="intention-del" data-idx="${i}">✕</button>`;
+      row.querySelector('.intention-check').addEventListener('click',()=>{
+        list[i].done=!list[i].done;intentionsLog[key]=list;saveData();renderIntentions();
+      });
+      row.querySelector('.intention-del').addEventListener('click',()=>{
+        list.splice(i,1);intentionsLog[key]=list;saveData();renderIntentions();
+      });
+      container.appendChild(row);
+    });
+  }
+
+  function addIntention(){
+    const inp=document.getElementById('intentionInput');
+    const txt=inp.value.trim();if(!txt)return;
+    const key=getTodayKey();
+    if(!intentionsLog[key])intentionsLog[key]=[];
+    intentionsLog[key].push({text:txt,done:false});
+    inp.value='';saveData();renderIntentions();
+  }
+  document.getElementById('intentionAddBtn').addEventListener('click',addIntention);
+  document.getElementById('intentionInput').addEventListener('keypress',e=>{if(e.key==='Enter')addIntention();});
+
+  /* ── GRATITUDE ── */
+  function renderGratitude(){
+    const key=getTodayKey();
+    const list=gratitudeLog[key]||[];
+    const container=document.getElementById('gratitudeList');
+    container.innerHTML='';
+    list.forEach((txt,i)=>{
+      const item=document.createElement('div');item.className='gratitude-item';
+      item.innerHTML=`<span class="num">${i+1}</span><span>${escHtml(txt)}</span><button class="del-g" data-idx="${i}">✕</button>`;
+      item.querySelector('.del-g').addEventListener('click',()=>{list.splice(i,1);gratitudeLog[key]=list;saveData();renderGratitude();});
+      container.appendChild(item);
+    });
+  }
+
+  function addGratitude(){
+    const inp=document.getElementById('gratitudeInput');
+    const txt=inp.value.trim();if(!txt)return;
+    const key=getTodayKey();
+    if(!gratitudeLog[key])gratitudeLog[key]=[];
+    if(gratitudeLog[key].length>=5)return;
+    gratitudeLog[key].push(txt);
+    inp.value='';saveData();renderGratitude();
+  }
+  document.getElementById('gratitudeAddBtn').addEventListener('click',addGratitude);
+  document.getElementById('gratitudeInput').addEventListener('keypress',e=>{if(e.key==='Enter')addGratitude();});
+
+  /* ── HISTORY ── */
+  function renderHistory(){
+    const container=document.getElementById('historyList');
+    const days=[];
+    const d=new Date();
+    for(let i=0;i<14;i++){
+      const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const mood=moodLog[key];
+      const wb=wbLog[key];
+      const intentions=intentionsLog[key];
+      const gratitude=gratitudeLog[key];
+      if(mood||wb||intentions?.length||gratitude?.length){
+        days.push({key,date:new Date(d),mood,wb,intentions,gratitude});
+      }
+      d.setDate(d.getDate()-1);
+    }
+    if(!days.length){container.innerHTML=`<div class="empty-history">No entries yet.<br>Start your first check-in above.</div>`;return;}
+    container.innerHTML='';
+    days.forEach(entry=>{
+      const row=document.createElement('div');row.className='history-row';
+      const dateStr=entry.date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      const moodEmoji=entry.mood?['','😞','😐','🙂','😄','🔥'][entry.mood.mood]:'';
+      const dotColor=entry.mood?moodColors[entry.mood.mood]:'var(--surface3)';
+      let wbPips='';
+      if(entry.wb){
+        wbPips=WELLBEING_ITEMS.slice(0,3).map(item=>`<span class="wb-pip">${item.icon} ${entry.wb[item.id]||'–'}</span>`).join('');
+      }
+      let noteHtml='';
+      if(entry.mood?.note)noteHtml=`<div class="history-note">"${escHtml(entry.mood.note)}"</div>`;
+      let intentHtml='';
+      if(entry.intentions?.length){
+        const done=entry.intentions.filter(i=>i.done).length;
+        intentHtml=`<span class="wb-pip">✦ ${done}/${entry.intentions.length} intentions</span>`;
+      }
+      let gratHtml='';
+      if(entry.gratitude?.length)gratHtml=`<span class="wb-pip">♡ ${entry.gratitude.length} gratitude</span>`;
+      row.innerHTML=`
+        <div class="history-dot" style="background:${dotColor};margin-top:6px;"></div>
+        <div class="history-left">
+          <div class="history-date">${dateStr}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+            ${moodEmoji?`<span class="history-mood-emoji">${moodEmoji}</span>`:''}
+            ${entry.mood?`<span style="font-size:.78rem;color:var(--text);">${moodLabels[entry.mood.mood]||''}</span>`:''}
+          </div>
+          ${noteHtml}
+          <div class="history-wb">${wbPips}${intentHtml}${gratHtml}</div>
+        </div>`;
+      container.appendChild(row);
+    });
+  }
+
+  /* ── INIT ── */
+  loadData();
+  initDates();
+  initCheckin();
+  initWellbeing();
+  renderIntentions();
+  renderGratitude();
+  renderHistory();
+</script>
+</body>
+</html>
