@@ -147,7 +147,8 @@
     <!-- 4 STAT TILES -->
     <div class="stat-grid">
       <div class="stat-tile green-val">
-        <div class="label">Avg / 30d</div>
+        <!-- Label updated dynamically to reflect actual window -->
+        <div class="label" id="avgLabel">Avg / 30d</div>
         <div class="value" id="avgCompletion">0%</div>
         <div class="sub">completion rate</div>
       </div>
@@ -177,10 +178,10 @@
       <div class="bar-chart" id="weekBarChart"></div>
     </div>
 
-    <!-- 30-DAY CONSISTENCY SPARKLINE -->
+    <!-- CONSISTENCY SPARKLINE — label adapts to window -->
     <div class="card">
       <div class="card-header">
-        <span class="card-label">30-Day Consistency</span>
+        <span class="card-label" id="sparklineLabel">30-Day Consistency</span>
         <span class="card-val" id="consistencyScore">0%</span>
       </div>
       <div class="sparkline-wrap">
@@ -248,86 +249,142 @@
 </div>
 
 <script>
-  const STORAGE_KEY='altura_v5';
-  const pad=n=>String(n).padStart(2,'0');
-  function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
-  function isFuture(key){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=key.split('-').map(Number);return new Date(y,m-1,d)>t;}
-  function cellColor(pct,habits){if(!habits.length||pct===0)return'var(--surface2)';if(pct===100)return'var(--accent)';return`rgba(200,245,62,${0.1+(pct/100)*0.65})`;}
+  const STORAGE_KEY = 'altura_v5';
+  const pad = n => String(n).padStart(2,'0');
+  function getTodayKey(){ const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function isFuture(key){ const t=new Date(); t.setHours(0,0,0,0); const[y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d)>t; }
+  function cellColor(pct,habits){ if(!habits.length||pct===0) return 'var(--surface2)'; if(pct===100) return 'var(--accent)'; return `rgba(200,245,62,${0.1+(pct/100)*0.65})`; }
 
-  let habits=[],completions={},moodLog={},bestStreakOverall=0,streakFreezeUsed=false,lastFreezeDate=null;
-  let currentViewYear=new Date().getFullYear(),currentViewMonth=new Date().getMonth();
+  let habits=[], completions={}, moodLog={}, bestStreakOverall=0, streakFreezeUsed=false, lastFreezeDate=null;
+  let currentViewYear=new Date().getFullYear(), currentViewMonth=new Date().getMonth();
   const moodColors=['','#ff6b6b','#ffa94d','#ffe066','#74c0fc','#c8f53e'];
 
   function loadData(){
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(raw){try{const d=JSON.parse(raw);if(d.habits)habits=d.habits;if(d.completions)completions=d.completions;if(d.moodLog)moodLog=d.moodLog;if(typeof d.bestStreakOverall==='number')bestStreakOverall=d.bestStreakOverall;if(d.streakFreezeUsed)streakFreezeUsed=d.streakFreezeUsed;if(d.lastFreezeDate)lastFreezeDate=d.lastFreezeDate;}catch(e){}}
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ try{ const d=JSON.parse(raw); if(d.habits)habits=d.habits; if(d.completions)completions=d.completions; if(d.moodLog)moodLog=d.moodLog; if(typeof d.bestStreakOverall==='number')bestStreakOverall=d.bestStreakOverall; if(d.streakFreezeUsed)streakFreezeUsed=d.streakFreezeUsed; if(d.lastFreezeDate)lastFreezeDate=d.lastFreezeDate; }catch(e){} }
   }
 
   function getDayPct(key){
-    if(!habits.length||isFuture(key))return 0;
-    const map=completions[key]||{};
-    return(habits.filter(h=>map[h.id]).length/habits.length)*100;
+    if(!habits.length||isFuture(key)) return 0;
+    const map = completions[key]||{};
+    return (habits.filter(h=>map[h.id]).length / habits.length)*100;
   }
 
+  /* ── ADAPTIVE WINDOW ──────────────────────────────────────────────
+     Returns the number of days to use for rolling-window stats.
+     Looks at the earliest day with any completion data (or habits added
+     date as a proxy via first completion key), capped at 30.
+     If the user has been using the app for only 3 days, we use 3 days,
+     so their "30-day avg" is actually "3-day avg" and makes sense.
+  ────────────────────────────────────────────────────────────────── */
+  function getAdaptiveWindow(){
+    const MAX = 30;
+    // Collect all non-future completion keys
+    const pastKeys = Object.keys(completions).filter(k => !isFuture(k));
+    if(!pastKeys.length) return 1; // brand new user, show at least 1
+
+    // Find earliest key
+    const sorted = pastKeys.slice().sort(); // lexicographic sort works for YYYY-MM-DD
+    const earliest = sorted[0];
+    const [ey, em, ed] = earliest.split('-').map(Number);
+    const earliestDate = new Date(ey, em-1, ed);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffDays = Math.round((today - earliestDate) / 86400000) + 1; // inclusive
+    return Math.min(diffDays, MAX);
+  }
+
+  /* ── STATS ── */
   function computeStreak(){
-    if(!habits.length)return 0;
-    let streak=0,cursor=new Date();cursor.setHours(0,0,0,0);let usedFreeze=false;
+    if(!habits.length) return 0;
+    let streak=0, cursor=new Date(); cursor.setHours(0,0,0,0); let usedFreeze=false;
     for(let i=0;i<5000;i++){
       const key=`${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
-      if(getDayPct(key)===100){streak++;usedFreeze=false;}
-      else{if(!usedFreeze&&streakFreezeUsed&&lastFreezeDate===key){streak++;usedFreeze=true;}else break;}
+      if(getDayPct(key)===100){ streak++; usedFreeze=false; }
+      else{ if(!usedFreeze&&streakFreezeUsed&&lastFreezeDate===key){ streak++; usedFreeze=true; } else break; }
       cursor.setDate(cursor.getDate()-1);
     }
     return streak;
   }
 
   function computeHabitStreak(habitId){
-    let streak=0,cursor=new Date();cursor.setHours(0,0,0,0);
+    let streak=0, cursor=new Date(); cursor.setHours(0,0,0,0);
     for(let i=0;i<5000;i++){
       const key=`${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
-      if(isFuture(key)){cursor.setDate(cursor.getDate()-1);continue;}
-      if(completions[key]?.[habitId])streak++;else break;
+      if(isFuture(key)){ cursor.setDate(cursor.getDate()-1); continue; }
+      if(completions[key]?.[habitId]) streak++; else break;
       cursor.setDate(cursor.getDate()-1);
     }
     return streak;
   }
 
   function computeHabitRate(habitId){
-    let cnt=0,total=0;
-    for(const day in completions){if(isFuture(day))continue;total++;if(completions[day]?.[habitId])cnt++;}
-    return total?Math.round((cnt/total)*100):0;
+    let cnt=0, total=0;
+    for(const day in completions){ if(isFuture(day)) continue; total++; if(completions[day]?.[habitId]) cnt++; }
+    return total ? Math.round((cnt/total)*100) : 0;
   }
 
-  function avgLast30(){
-    let sum=0;const d=new Date();
-    for(let i=0;i<30;i++){sum+=getDayPct(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`);d.setDate(d.getDate()-1);}
-    return Math.round(sum/30);
+  /**
+   * Average completion over the adaptive window (≤30 days).
+   * Returns { avg: number, window: number }
+   */
+  function avgAdaptive(){
+    const win = getAdaptiveWindow();
+    let sum=0; const d=new Date();
+    for(let i=0; i<win; i++){
+      const day=new Date(d); day.setDate(d.getDate()-i);
+      sum += getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`);
+    }
+    return { avg: Math.round(sum/win), window: win };
   }
 
   function bestWeekEver(){
-    let max=0,today=new Date();
-    for(let i=0;i<52;i++){let wc=0;for(let j=0;j<7;j++){const day=new Date(today);day.setDate(today.getDate()-j);if(getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`)===100)wc++;}if(wc>max)max=wc;today.setDate(today.getDate()-7);}
+    let max=0, today=new Date();
+    for(let i=0;i<52;i++){
+      let wc=0;
+      for(let j=0;j<7;j++){
+        const day=new Date(today); day.setDate(today.getDate()-j);
+        if(getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`)===100) wc++;
+      }
+      if(wc>max) max=wc;
+      today.setDate(today.getDate()-7);
+    }
     return max;
   }
 
   function weeklyCount(){
-    let c=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);if(getDayPct(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`)===100)c++;}
+    let c=0;
+    for(let i=0;i<7;i++){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      if(getDayPct(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`)===100) c++;
+    }
     return c;
   }
 
   function countPerfectDays(){
-    let c=0;for(const day in completions){if(!isFuture(day)&&getDayPct(day)===100)c++;}return c;
+    let c=0;
+    for(const day in completions){ if(!isFuture(day)&&getDayPct(day)===100) c++; }
+    return c;
   }
 
   /* ── RENDER TILES ── */
   function renderTiles(){
-    const avg=avgLast30();
-    document.getElementById('avgCompletion').textContent=`${avg}%`;
-    document.getElementById('consistencyScore').textContent=`${avg}%`;
-    document.getElementById('bestWeek').textContent=bestWeekEver();
-    document.getElementById('perfectDays').textContent=countPerfectDays();
-    document.getElementById('currentStreak').textContent=computeStreak();
-    document.getElementById('weekCount').textContent=`${weeklyCount()}/7`;
+    const { avg, window: win } = avgAdaptive();
+
+    // Update tile label to show actual window
+    const avgLabel = document.getElementById('avgLabel');
+    avgLabel.textContent = win < 30 ? `Avg / ${win}d` : 'Avg / 30d';
+
+    document.getElementById('avgCompletion').textContent = `${avg}%`;
+    document.getElementById('consistencyScore').textContent = `${avg}%`;
+
+    // Update sparkline card label too
+    const sparkLabel = document.getElementById('sparklineLabel');
+    sparkLabel.textContent = win < 30 ? `${win}-Day Consistency` : '30-Day Consistency';
+
+    document.getElementById('bestWeek').textContent = bestWeekEver();
+    document.getElementById('perfectDays').textContent = countPerfectDays();
+    document.getElementById('currentStreak').textContent = computeStreak();
+    document.getElementById('weekCount').textContent = `${weeklyCount()}/7`;
   }
 
   /* ── WEEKLY BARS ── */
@@ -335,13 +392,13 @@
     const container=document.getElementById('weekBarChart');
     const days=['M','T','W','T','F','S','S'];
     container.innerHTML='';
-    const today=new Date(),dow=today.getDay(),diffToMon=dow===0?6:dow-1;
-    const monday=new Date(today);monday.setDate(today.getDate()-diffToMon);
+    const today=new Date(), dow=today.getDay(), diffToMon=dow===0?6:dow-1;
+    const monday=new Date(today); monday.setDate(today.getDate()-diffToMon);
     for(let i=0;i<7;i++){
-      const d=new Date(monday);d.setDate(monday.getDate()+i);
+      const d=new Date(monday); d.setDate(monday.getDate()+i);
       const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      const pct=getDayPct(key),isToday=key===getTodayKey(),future=isFuture(key);
-      const col=document.createElement('div');col.className='bar-col'+(isToday?' bar-today':'');
+      const pct=getDayPct(key), isToday=key===getTodayKey(), future=isFuture(key);
+      const col=document.createElement('div'); col.className='bar-col'+(isToday?' bar-today':'');
       const h=future?0:Math.max((pct/100)*100,pct>0?8:0);
       const color=pct===100?'var(--accent)':pct>0?`rgba(200,245,62,${0.15+(pct/100)*.5})`:'transparent';
       col.innerHTML=`<div class="bar-fill-wrap" style="height:62px;"><div class="bar-segment" style="height:${h}%;background:${color};width:100%;"></div></div><div class="bar-day-label">${days[i]}</div>`;
@@ -349,45 +406,59 @@
     }
   }
 
-  /* ── SPARKLINE ── */
+  /* ── SPARKLINE — uses adaptive window ── */
   function renderSparkline(){
-    const svg=document.getElementById('sparklineSvg');svg.innerHTML='';
-    const pts=[],d=new Date();
-    for(let i=29;i>=0;i--){const day=new Date(d);day.setDate(d.getDate()-i);pts.push(getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`));}
-    const W=440,H=64,n=pts.length,xStep=W/(n-1);
+    const win = getAdaptiveWindow();
+    const svg=document.getElementById('sparklineSvg'); svg.innerHTML='';
+    const pts=[], d=new Date();
+    for(let i=win-1; i>=0; i--){
+      const day=new Date(d); day.setDate(d.getDate()-i);
+      pts.push(getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`));
+    }
+    if(pts.length < 2){
+      // Only 1 data point: draw a simple dot
+      const W=440, H=64;
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx', W/2); dot.setAttribute('cy', (1-pts[0]/100)*H);
+      dot.setAttribute('r','5'); dot.setAttribute('fill','var(--accent)');
+      svg.appendChild(dot);
+      return;
+    }
+    const W=440, H=64, n=pts.length, xStep=W/(n-1);
     const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
     defs.innerHTML=`<linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c8f53e" stop-opacity="0.35"/><stop offset="100%" stop-color="#c8f53e" stop-opacity="0"/></linearGradient>`;
     svg.appendChild(defs);
-    let pathD='',areaD='';
+    let pathD='', areaD='';
     pts.forEach((v,i)=>{
-      const px=i*xStep,py=(1-v/100)*H;
-      if(i===0){pathD+=`M${px},${py}`;areaD+=`M${px},${H} L${px},${py}`;}
-      else{const ox=(i-1)*xStep,oy=(1-pts[i-1]/100)*H,cx=(ox+px)/2;pathD+=` C${cx},${oy} ${cx},${py} ${px},${py}`;areaD+=` C${cx},${oy} ${cx},${py} ${px},${py}`;}
+      const px=i*xStep, py=(1-v/100)*H;
+      if(i===0){ pathD+=`M${px},${py}`; areaD+=`M${px},${H} L${px},${py}`; }
+      else{ const ox=(i-1)*xStep, oy=(1-pts[i-1]/100)*H, cx=(ox+px)/2; pathD+=` C${cx},${oy} ${cx},${py} ${px},${py}`; areaD+=` C${cx},${oy} ${cx},${py} ${px},${py}`; }
     });
     areaD+=` L${(n-1)*xStep},${H} Z`;
-    const area=document.createElementNS('http://www.w3.org/2000/svg','path');area.setAttribute('d',areaD);area.setAttribute('fill','url(#sg)');
-    const line=document.createElementNS('http://www.w3.org/2000/svg','path');line.setAttribute('d',pathD);line.setAttribute('fill','none');line.setAttribute('stroke','var(--accent)');line.setAttribute('stroke-width','1.8');line.setAttribute('stroke-linecap','round');
-    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.appendChild(area);svg.appendChild(line);
+    const area=document.createElementNS('http://www.w3.org/2000/svg','path'); area.setAttribute('d',areaD); area.setAttribute('fill','url(#sg)');
+    const line=document.createElementNS('http://www.w3.org/2000/svg','path'); line.setAttribute('d',pathD); line.setAttribute('fill','none'); line.setAttribute('stroke','var(--accent)'); line.setAttribute('stroke-width','1.8'); line.setAttribute('stroke-linecap','round');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.appendChild(area); svg.appendChild(line);
     const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    dot.setAttribute('cx',(n-1)*xStep);dot.setAttribute('cy',(1-pts[n-1]/100)*H);dot.setAttribute('r','4');dot.setAttribute('fill','var(--accent)');
+    dot.setAttribute('cx',(n-1)*xStep); dot.setAttribute('cy',(1-pts[n-1]/100)*H); dot.setAttribute('r','4'); dot.setAttribute('fill','var(--accent)');
     svg.appendChild(dot);
   }
 
   /* ── WEEK DOTS ── */
   function renderWeekDots(){
-    const container=document.getElementById('weekDots');const days=['M','T','W','T','F','S','S'];container.innerHTML='';
-    const today=new Date(),dow=today.getDay(),diffToMon=dow===0?6:dow-1;
-    const monday=new Date(today);monday.setDate(today.getDate()-diffToMon);
+    const container=document.getElementById('weekDots'); const days=['M','T','W','T','F','S','S']; container.innerHTML='';
+    const today=new Date(), dow=today.getDay(), diffToMon=dow===0?6:dow-1;
+    const monday=new Date(today); monday.setDate(today.getDate()-diffToMon);
     for(let i=0;i<7;i++){
-      const d=new Date(monday);d.setDate(monday.getDate()+i);
+      const d=new Date(monday); d.setDate(monday.getDate()+i);
       const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      const pct=getDayPct(key),isToday=key===getTodayKey(),future=isFuture(key);
-      const col=document.createElement('div');col.className='week-dot-col';
-      const label=document.createElement('div');label.className='week-dot-day';label.textContent=days[i];
-      const dot=document.createElement('div');dot.className='week-dot';
-      if(!future){if(pct===100)dot.classList.add('full');else if(pct>0)dot.classList.add('partial');}
-      if(isToday)dot.classList.add('today-mark');
-      col.appendChild(label);col.appendChild(dot);container.appendChild(col);
+      const pct=getDayPct(key), isToday=key===getTodayKey(), future=isFuture(key);
+      const col=document.createElement('div'); col.className='week-dot-col';
+      const label=document.createElement('div'); label.className='week-dot-day'; label.textContent=days[i];
+      const dot=document.createElement('div'); dot.className='week-dot';
+      if(!future){ if(pct===100) dot.classList.add('full'); else if(pct>0) dot.classList.add('partial'); }
+      if(isToday) dot.classList.add('today-mark');
+      col.appendChild(label); col.appendChild(dot); container.appendChild(col);
     }
   }
 
@@ -397,20 +468,20 @@
     const startDow=first.getDay()===0?6:first.getDay()-1;
     const daysInMonth=new Date(currentViewYear,currentViewMonth+1,0).getDate();
     const prevDays=new Date(currentViewYear,currentViewMonth,0).getDate();
-    const grid=document.getElementById('calendarGrid');grid.innerHTML='';
-    const to=new Date(),ty=to.getFullYear(),tm=to.getMonth(),td=to.getDate();
+    const grid=document.getElementById('calendarGrid'); grid.innerHTML='';
+    const to=new Date(), ty=to.getFullYear(), tm=to.getMonth(), td=to.getDate();
     for(let i=0;i<42;i++){
       let date,year,month,isCur=true;
-      if(i<startDow){date=prevDays-(startDow-i)+1;year=currentViewMonth===0?currentViewYear-1:currentViewYear;month=currentViewMonth===0?11:currentViewMonth-1;isCur=false;}
-      else if(i>=startDow+daysInMonth){date=i-(startDow+daysInMonth)+1;year=currentViewMonth===11?currentViewYear+1:currentViewYear;month=currentViewMonth===11?0:currentViewMonth+1;isCur=false;}
-      else{date=i-startDow+1;year=currentViewYear;month=currentViewMonth;isCur=true;}
+      if(i<startDow){ date=prevDays-(startDow-i)+1; year=currentViewMonth===0?currentViewYear-1:currentViewYear; month=currentViewMonth===0?11:currentViewMonth-1; isCur=false; }
+      else if(i>=startDow+daysInMonth){ date=i-(startDow+daysInMonth)+1; year=currentViewMonth===11?currentViewYear+1:currentViewYear; month=currentViewMonth===11?0:currentViewMonth+1; isCur=false; }
+      else{ date=i-startDow+1; year=currentViewYear; month=currentViewMonth; isCur=true; }
       const key=`${year}-${pad(month+1)}-${pad(date)}`;
-      const pct=getDayPct(key),future=isFuture(key),isToday=(year===ty&&month===tm&&date===td);
-      const cell=document.createElement('div');cell.className='cal-cell';
-      if(isCur)cell.classList.add('cur');if(isToday)cell.classList.add('today');if(future)cell.classList.add('future');if(!isCur)cell.classList.add('other');
-      if(!future&&pct>0){cell.style.background=cellColor(pct,habits);if(pct===100)cell.style.color='#000';}
+      const pct=getDayPct(key), future=isFuture(key), isToday=(year===ty&&month===tm&&date===td);
+      const cell=document.createElement('div'); cell.className='cal-cell';
+      if(isCur) cell.classList.add('cur'); if(isToday) cell.classList.add('today'); if(future) cell.classList.add('future'); if(!isCur) cell.classList.add('other');
+      if(!future&&pct>0){ cell.style.background=cellColor(pct,habits); if(pct===100) cell.style.color='#000'; }
       cell.textContent=date;
-      if(moodLog[key]&&!future){const md=document.createElement('div');md.className='mood-dot';md.style.background=moodColors[moodLog[key].mood]||'';cell.appendChild(md);}
+      if(moodLog[key]&&!future){ const md=document.createElement('div'); md.className='mood-dot'; md.style.background=moodColors[moodLog[key].mood]||''; cell.appendChild(md); }
       grid.appendChild(cell);
     }
     const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -420,14 +491,12 @@
   /* ── PER-HABIT BREAKDOWN ── */
   function renderHabitStats(){
     const container=document.getElementById('habitStatList');
-    if(!habits.length){container.innerHTML=`<div class="empty-stat">Add habits on the Today page to see breakdown.</div>`;return;}
-    const data=habits.map(h=>({
-      h,rate:computeHabitRate(h.id),streak:computeHabitStreak(h.id)
-    })).sort((a,b)=>b.rate-a.rate);
+    if(!habits.length){ container.innerHTML=`<div class="empty-stat">Add habits on the Today page to see breakdown.</div>`; return; }
+    const data=habits.map(h=>({ h, rate:computeHabitRate(h.id), streak:computeHabitStreak(h.id) })).sort((a,b)=>b.rate-a.rate);
     container.innerHTML='';
     data.forEach(({h,rate,streak})=>{
       const color=rate>=75?'var(--accent)':rate>=40?'var(--gold)':'#ff6b6b';
-      const row=document.createElement('div');row.className='habit-stat-row';
+      const row=document.createElement('div'); row.className='habit-stat-row';
       row.innerHTML=`
         <div class="hsr-info">
           <div class="hsr-name">${h.name}</div>
@@ -444,22 +513,20 @@
   function renderCatBreakdown(){
     const container=document.getElementById('catBreakdown');
     const cats={};
-    habits.forEach(h=>{
-      if(!cats[h.category])cats[h.category]={total:0,cnt:0};
-    });
+    habits.forEach(h=>{ if(!cats[h.category]) cats[h.category]={total:0,cnt:0}; });
     for(const day in completions){
-      if(isFuture(day))continue;
+      if(isFuture(day)) continue;
       habits.forEach(h=>{
-        if(!cats[h.category])cats[h.category]={total:0,cnt:0};
+        if(!cats[h.category]) cats[h.category]={total:0,cnt:0};
         cats[h.category].total++;
-        if(completions[day]?.[h.id])cats[h.category].cnt++;
+        if(completions[day]?.[h.id]) cats[h.category].cnt++;
       });
     }
-    const entries=Object.entries(cats).map(([name,d])=>({name,pct:d.total?Math.round((d.cnt/d.total)*100):0})).sort((a,b)=>b.pct-a.pct);
-    if(!entries.length){container.innerHTML=`<div class="empty-stat">No data yet.</div>`;return;}
+    const entries=Object.entries(cats).map(([name,d])=>({ name, pct:d.total?Math.round((d.cnt/d.total)*100):0 })).sort((a,b)=>b.pct-a.pct);
+    if(!entries.length){ container.innerHTML=`<div class="empty-stat">No data yet.</div>`; return; }
     container.innerHTML='';
     entries.forEach(({name,pct})=>{
-      const row=document.createElement('div');row.className='cat-row';
+      const row=document.createElement('div'); row.className='cat-row';
       row.innerHTML=`
         <div class="cat-top"><span class="cat-name">${name}</span><span class="cat-pct">${pct}%</span></div>
         <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${pct}%;"></div></div>`;
@@ -469,20 +536,20 @@
 
   /* ── MONTH SELECTOR ── */
   const monthModal=document.getElementById('monthSelectorModal');
-  document.getElementById('monthYearLabel').addEventListener('click',()=>{document.getElementById('yearDisplay').textContent=currentViewYear;renderMonthGrid();monthModal.classList.add('active');});
+  document.getElementById('monthYearLabel').addEventListener('click',()=>{ document.getElementById('yearDisplay').textContent=currentViewYear; renderMonthGrid(); monthModal.classList.add('active'); });
   function renderMonthGrid(){
-    const grid=document.getElementById('monthsGrid');const mns=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];grid.innerHTML='';
-    mns.forEach((name,idx)=>{const btn=document.createElement('div');btn.className='month-opt'+(idx===currentViewMonth?' active-m':'');btn.textContent=name;btn.addEventListener('click',()=>{currentViewMonth=idx;renderCalendar();monthModal.classList.remove('active');});grid.appendChild(btn);});
+    const grid=document.getElementById('monthsGrid'); const mns=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; grid.innerHTML='';
+    mns.forEach((name,idx)=>{ const btn=document.createElement('div'); btn.className='month-opt'+(idx===currentViewMonth?' active-m':''); btn.textContent=name; btn.addEventListener('click',()=>{ currentViewMonth=idx; renderCalendar(); monthModal.classList.remove('active'); }); grid.appendChild(btn); });
   }
   document.getElementById('closeMonthSelector').addEventListener('click',()=>monthModal.classList.remove('active'));
-  document.getElementById('yearPrevBtn').addEventListener('click',()=>{currentViewYear--;document.getElementById('yearDisplay').textContent=currentViewYear;renderMonthGrid();});
-  document.getElementById('yearNextBtn').addEventListener('click',()=>{currentViewYear++;document.getElementById('yearDisplay').textContent=currentViewYear;renderMonthGrid();});
-  monthModal.addEventListener('click',e=>{if(e.target===monthModal)monthModal.classList.remove('active');});
-  document.getElementById('prevMonthBtn').addEventListener('click',()=>{if(currentViewMonth===0){currentViewMonth=11;currentViewYear--;}else currentViewMonth--;renderCalendar();});
-  document.getElementById('nextMonthBtn').addEventListener('click',()=>{if(currentViewMonth===11){currentViewMonth=0;currentViewYear++;}else currentViewMonth++;renderCalendar();});
+  document.getElementById('yearPrevBtn').addEventListener('click',()=>{ currentViewYear--; document.getElementById('yearDisplay').textContent=currentViewYear; renderMonthGrid(); });
+  document.getElementById('yearNextBtn').addEventListener('click',()=>{ currentViewYear++; document.getElementById('yearDisplay').textContent=currentViewYear; renderMonthGrid(); });
+  monthModal.addEventListener('click',e=>{ if(e.target===monthModal) monthModal.classList.remove('active'); });
+  document.getElementById('prevMonthBtn').addEventListener('click',()=>{ if(currentViewMonth===0){ currentViewMonth=11; currentViewYear--; } else currentViewMonth--; renderCalendar(); });
+  document.getElementById('nextMonthBtn').addEventListener('click',()=>{ if(currentViewMonth===11){ currentViewMonth=0; currentViewYear++; } else currentViewMonth++; renderCalendar(); });
 
   /* ── INIT ── */
-  document.getElementById('statsDateSub').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('statsDateSub').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   loadData();
   renderTiles();
   renderWeekBars();

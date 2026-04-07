@@ -52,9 +52,17 @@
     .nav{display:flex;justify-content:flex-end;align-items:center;padding:18px 20px 14px;position:sticky;top:0;z-index:200;background:linear-gradient(to bottom,rgba(7,7,7,1) 65%,rgba(7,7,7,0));}
 
     /* ── FIRE STREAK ── */
-    .fire-streak-wrap{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:40px;padding:5px 14px 5px 8px;cursor:default;transition:border-color .3s;}
+    /* Fixed min-width so the pill never shrinks when flame lights or digit changes */
+    .fire-streak-wrap{
+      display:flex;align-items:center;gap:7px;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:40px;padding:5px 14px 5px 8px;
+      cursor:default;transition:border-color .3s;
+      min-width:128px; /* holds space for "88d streak" + lit flame */
+    }
     .fire-streak-wrap.lit{border-color:rgba(255,140,0,.35);}
-    .flame-container{position:relative;width:38px;height:40px;flex-shrink:0;}
+    /* Slightly wider container so the bigger flame paths aren't clipped */
+    .flame-container{position:relative;width:42px;height:40px;flex-shrink:0;}
 
     .flame-unlit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity .3s,transform .3s;}
     .flame-unlit svg{width:28px;height:28px;}
@@ -63,10 +71,11 @@
     .flame-lit{position:absolute;inset:0;opacity:0;transform:scale(.7) translateY(4px);transition:opacity .4s,transform .4s;}
     .fire-streak-wrap.lit .flame-lit{opacity:1;transform:scale(1) translateY(0);}
 
-    .flame-outer{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:36px;transform-origin:bottom center;}
-    .flame-mid{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:20px;height:28px;transform-origin:bottom center;}
-    .flame-inner{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:12px;height:16px;transform-origin:bottom center;}
-    .flame-base{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:30px;height:10px;border-radius:50%;transform-origin:center center;}
+    /* Flame layers — wider than before (outer 34px vs 28px, mid 24px vs 20px) */
+    .flame-outer{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:34px;height:38px;transform-origin:bottom center;}
+    .flame-mid{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:30px;transform-origin:bottom center;}
+    .flame-inner{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:14px;height:18px;transform-origin:bottom center;}
+    .flame-base{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:36px;height:12px;border-radius:50%;transform-origin:center center;}
 
     @keyframes flickerOuter{
       0%,100%{transform:translateX(-50%) scale(1);}
@@ -95,7 +104,8 @@
     .fire-streak-wrap.lit .flame-base{animation:pulseBase 1.6s ease-in-out infinite .1s;}
 
     .streak-nums{display:flex;flex-direction:column;line-height:1.1;}
-    .streak-cur{font-size:.88rem;font-weight:600;color:var(--white);}
+    /* Fixed width on streak line so "0d" and "99d" take same space → no layout shift */
+    .streak-cur{font-size:.88rem;font-weight:600;color:var(--white);min-width:64px;}
     .streak-best-label{font-size:.58rem;color:var(--gold);font-weight:500;letter-spacing:.3px;}
 
     /* ── HERO ── */
@@ -130,10 +140,43 @@
 
     /* ── HABITS SECTION ── */
     .habits-section{padding:0 16px;margin-bottom:10px;}
-    .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-    .section-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:var(--text-muted);}
-    .add-habit-btn{width:34px;height:34px;background:var(--accent);border:none;border-radius:50%;font-size:1.3rem;font-weight:300;color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;}
+
+    /* Section header — three-column: title | day-nav | + button */
+    .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;}
+    .section-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:var(--text-muted);flex-shrink:0;}
+    .add-habit-btn{width:34px;height:34px;background:var(--accent);border:none;border-radius:50%;font-size:1.3rem;font-weight:300;color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;line-height:1;flex-shrink:0;}
     .add-habit-btn:hover{transform:scale(1.08);background:#d4f74a;}
+
+    /* ── DAY NAVIGATOR (Whoop-style) ── */
+    .day-nav{
+      display:flex;align-items:center;gap:0;
+      background:var(--surface2);border:1px solid var(--border);
+      border-radius:40px;overflow:hidden;
+      flex:1;max-width:220px;
+      height:32px;
+    }
+    .day-nav-arrow{
+      background:none;border:none;color:var(--text-muted);
+      cursor:pointer;font-size:.75rem;padding:0 10px;height:100%;
+      display:flex;align-items:center;justify-content:center;
+      transition:color .15s;flex-shrink:0;
+    }
+    .day-nav-arrow:hover{color:var(--text);}
+    .day-nav-arrow:disabled{opacity:.2;cursor:default;}
+    .day-nav-label{
+      flex:1;text-align:center;
+      font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;
+      color:var(--text);cursor:pointer;
+      user-select:none;padding:0 4px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      transition:color .15s;
+    }
+    .day-nav-label:hover{color:var(--accent);}
+    /* When viewing a past day, tint the label to hint "click to return" */
+    .day-nav-label.past{color:var(--accent);}
+
+    /* Past-day view: dim the + button and show a read-only past indicator */
+    .habits-section.past-view .add-habit-btn{opacity:.35;pointer-events:none;}
 
     .cat-filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;scrollbar-width:none;}
     .cat-filters::-webkit-scrollbar{display:none;}
@@ -142,8 +185,11 @@
     .cat-chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
 
     .habits-list{display:flex;flex-direction:column;gap:7px;}
+    /* slide-up only fires for newly appended rows, not the whole list */
     @keyframes slide-up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-    .habit-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 12px 12px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;position:relative;overflow:hidden;animation:slide-up .2s ease both;transition:border-color .15s,background .15s;}
+    .habit-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:12px 12px 12px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s,background .15s;}
+    /* New rows get the animation; existing rows don't re-animate */
+    .habit-row.new-row{animation:slide-up .2s ease both;}
     .habit-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border);transition:background .2s;border-radius:0 2px 2px 0;}
     .habit-row.done::before{background:var(--accent);}
     .habit-row.done{border-color:rgba(200,245,62,.09);}
@@ -239,7 +285,7 @@
 </div>
 
 <div class="app">
-  <!-- NAV — streak only, no logo -->
+  <!-- NAV — streak only -->
   <nav class="nav">
     <div class="fire-streak-wrap" id="fireStreakWrap">
       <div class="flame-container">
@@ -268,14 +314,15 @@
             </defs>
           </svg>
           <div class="flame-base" style="background:radial-gradient(ellipse at center,rgba(255,109,0,.85) 0%,rgba(255,109,0,0) 80%);"></div>
-          <svg class="flame-outer" viewBox="0 0 28 36" fill="none">
-            <path filter="url(#ff)" d="M14 1C11.5 5 8.5 9.5 8.5 15c0 2.4 1 4.3 2 5.4C10 18.5 10.5 16.5 12 15.3c0 0-1 3.6 1.3 5.7.5-1.8 1.4-3.4 2-4.8.5 2.3.2 4.4-1 6.1 2-1 3.9-3.6 3.9-6.8 0-4-2-6.9-2-6.9-.4 2.2-1.3 3.9-2.5 4.5C15.5 10.5 14.5 5.5 14 1Z" fill="url(#outerFlame)"/>
+          <!-- Wider outer flame path (viewBox kept, paths naturally fill it) -->
+          <svg class="flame-outer" viewBox="0 0 34 38" fill="none">
+            <path filter="url(#ff)" d="M17 1C14 5.5 10.5 10.5 10.5 17c0 2.8 1.1 5 2.3 6.4C12.2 21 12.8 18.5 14.5 17c0 0-1.2 4.2 1.5 6.7.6-2.1 1.7-4 2.4-5.7.6 2.7.2 5.2-1.2 7.2 2.4-1.2 4.6-4.2 4.6-8 0-4.6-2.4-8-2.4-8-.5 2.6-1.5 4.6-3 5.3C18.5 11.5 17.5 6 17 1Z" fill="url(#outerFlame)"/>
           </svg>
-          <svg class="flame-mid" viewBox="0 0 20 28" fill="none">
-            <path d="M10 2C8 5 6 8.5 6 12.5c0 1.8.8 3.3 1.6 4.3 0-1.9.5-3.3 1.7-4 0 0-.8 2.5 1 4.2.4-1.4 1.2-2.6 1.6-3.8.4 1.7.1 3.4-.8 4.6 1.4-.6 2.8-2.5 2.8-4.8 0-2.8-1.4-4.7-1.4-4.7-.4 2.1-1.2 3.7-2.2 4.2C10.8 9.5 10 5 10 2Z" fill="url(#midFlame)"/>
+          <svg class="flame-mid" viewBox="0 0 24 30" fill="none">
+            <path d="M12 2C9.5 5.5 7.5 9.5 7.5 14c0 2.2 1 4 2 5.2 0-2.3.6-4 2-4.8 0 0-1 3 1.2 5 .5-1.7 1.4-3 2-4.5.5 2 .1 4-1 5.5 1.7-.8 3.3-3 3.3-5.7 0-3.4-1.7-5.7-1.7-5.7-.4 2.5-1.4 4.4-2.6 5C13.5 11 12.5 6 12 2Z" fill="url(#midFlame)"/>
           </svg>
-          <svg class="flame-inner" viewBox="0 0 12 16" fill="none">
-            <path d="M6 1C4.8 3 3.5 5.2 3.5 7.8c0 1 .4 1.9.9 2.5C4.2 8.7 4.5 7.6 5.3 7c0 0-.4 1.6.7 2.5.3-.9.7-1.6.9-2.3.2 1.1 0 2.1-.5 2.8.9-.4 1.7-1.6 1.7-3 0-1.7-.9-2.8-.9-2.8-.2 1.3-.8 2.2-1.4 2.6C6.4 5 6 2.5 6 1Z" fill="url(#innerFlame)"/>
+          <svg class="flame-inner" viewBox="0 0 14 18" fill="none">
+            <path d="M7 1C5.5 3.2 4 5.8 4 8.8c0 1.2.5 2.2 1 2.9-.3-1.8.1-3.2 1-3.9 0 0-.5 1.9.8 2.9.4-1 .9-1.9 1.1-2.7.3 1.3 0 2.5-.6 3.3 1-.5 2-1.9 2-3.5 0-2-1-3.3-1-3.3-.3 1.5-.9 2.6-1.7 3.1C7.6 5.8 7.2 3 7 1Z" fill="url(#innerFlame)"/>
           </svg>
         </div>
       </div>
@@ -319,9 +366,15 @@
   </div>
 
   <!-- HABITS -->
-  <div class="habits-section">
+  <div class="habits-section" id="habitsSection">
     <div class="section-header">
       <span class="section-title">Rituals</span>
+      <!-- Whoop-style day navigator -->
+      <div class="day-nav" id="dayNav">
+        <button class="day-nav-arrow" id="dayNavPrev" title="Previous day">&#8249;</button>
+        <span class="day-nav-label" id="dayNavLabel" title="Tap to return to today">TODAY</span>
+        <button class="day-nav-arrow" id="dayNavNext" title="Next day" disabled>&#8250;</button>
+      </div>
       <button class="add-habit-btn" id="openModalBtn">+</button>
     </div>
     <div class="cat-filters" id="catFilters"></div>
@@ -377,175 +430,155 @@
 </div>
 
 <script>
-  /* ─── LOADER ─── */
-  window.addEventListener('load',()=>{
-    const loader=document.getElementById('loader');
-    setTimeout(()=>{
-      loader.classList.add('hide');
-      setTimeout(()=>{loader.style.display='none';},350);
-    },500);
-  });
+  /* ─────────────────────────────────────────
+     LOADER — show only on first visit per session
+  ───────────────────────────────────────── */
+  (function(){
+    const loader = document.getElementById('loader');
+    if(sessionStorage.getItem('altura_loaded')){
+      // Not the first visit this session — hide immediately, no animation
+      loader.style.display = 'none';
+    } else {
+      sessionStorage.setItem('altura_loaded','1');
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          loader.classList.add('hide');
+          setTimeout(() => { loader.style.display = 'none'; }, 350);
+        }, 500);
+      });
+    }
+  })();
 
-  /* ─── SHARED DATA KEY ─── */
-  const STORAGE_KEY='altura_v5';
-  const pad=n=>String(n).padStart(2,'0');
-  function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
-  function getMonthKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}`;}
-  function isFuture(key){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=key.split('-').map(Number);return new Date(y,m-1,d)>t;}
-  function getDayPct(key){if(!habits.length||isFuture(key))return 0;const map=completions[key]||{};return(habits.filter(h=>map[h.id]).length/habits.length)*100;}
-  function isFullDay(key){return habits.length>0&&getDayPct(key)===100;}
-  function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-  function getAllCategories(){const cats=new Set(['All']);habits.forEach(h=>cats.add(h.category));return[...cats];}
+  /* ─────────────────────────────────────────
+     SHARED UTILITIES
+  ───────────────────────────────────────── */
+  const STORAGE_KEY = 'altura_v5';
+  const pad = n => String(n).padStart(2, '0');
 
-  let habits=[],completions={},moodLog={},bestStreakOverall=0;
-  let streakFreezeUsed=false,lastFreezeDate=null,freezeUsedThisMonth=false;
-  let activeFilter='All',dragSrcIdx=null;
+  function getTodayKey(){
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function getMonthKey(){
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+  }
+  function isFuture(key){
+    const t = new Date(); t.setHours(0,0,0,0);
+    const [y,m,d] = key.split('-').map(Number);
+    return new Date(y,m-1,d) > t;
+  }
+  function getDayPct(key){
+    if(!habits.length || isFuture(key)) return 0;
+    const map = completions[key] || {};
+    return (habits.filter(h => map[h.id]).length / habits.length) * 100;
+  }
+  function isFullDay(key){ return habits.length > 0 && getDayPct(key) === 100; }
+  function escHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function getAllCategories(){ const c = new Set(['All']); habits.forEach(h => c.add(h.category)); return [...c]; }
 
+  /* ─────────────────────────────────────────
+     STATE
+  ───────────────────────────────────────── */
+  let habits = [], completions = {}, moodLog = {}, bestStreakOverall = 0;
+  let streakFreezeUsed = false, lastFreezeDate = null, freezeUsedThisMonth = false;
+  let activeFilter = 'All', dragSrcIdx = null;
+
+  /* ── Day navigator state ──
+     viewOffset = 0 → today, -1 → yesterday, …, -6 → 6 days ago */
+  let viewOffset = 0;
+
+  function getViewKey(offset){
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function getViewDateLabel(offset){
+    if(offset === 0) return 'TODAY';
+    if(offset === -1) return 'YESTERDAY';
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }).toUpperCase();
+  }
+
+  /* ─────────────────────────────────────────
+     STREAK HELPERS
+  ───────────────────────────────────────── */
   function computeStreak(){
-    if(!habits.length)return 0;
-    let streak=0,cursor=new Date();cursor.setHours(0,0,0,0);let usedFreeze=false;
-    for(let i=0;i<5000;i++){
-      const key=`${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
-      if(getDayPct(key)===100){streak++;usedFreeze=false;}
-      else{if(!usedFreeze&&streakFreezeUsed&&lastFreezeDate===key){streak++;usedFreeze=true;}else break;}
-      cursor.setDate(cursor.getDate()-1);
+    if(!habits.length) return 0;
+    let streak = 0, cursor = new Date(); cursor.setHours(0,0,0,0);
+    let usedFreeze = false;
+    for(let i = 0; i < 5000; i++){
+      const key = `${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
+      if(getDayPct(key) === 100){ streak++; usedFreeze = false; }
+      else{
+        if(!usedFreeze && streakFreezeUsed && lastFreezeDate === key){ streak++; usedFreeze = true; }
+        else break;
+      }
+      cursor.setDate(cursor.getDate() - 1);
     }
     return streak;
   }
 
   function computeHabitStreak(habitId){
-    let streak=0,cursor=new Date();cursor.setHours(0,0,0,0);
-    for(let i=0;i<5000;i++){
-      const key=`${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
-      if(isFuture(key)){cursor.setDate(cursor.getDate()-1);continue;}
-      if(completions[key]?.[habitId])streak++;else break;
+    let streak = 0, cursor = new Date(); cursor.setHours(0,0,0,0);
+    for(let i = 0; i < 5000; i++){
+      const key = `${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
+      if(isFuture(key)){ cursor.setDate(cursor.getDate()-1); continue; }
+      if(completions[key]?.[habitId]) streak++; else break;
       cursor.setDate(cursor.getDate()-1);
     }
     return streak;
   }
 
   function computeHabitRate(habitId){
-    let cnt=0,total=0;
-    for(const day in completions){if(isFuture(day))continue;total++;if(completions[day]?.[habitId])cnt++;}
-    return total?Math.round((cnt/total)*100):0;
-  }
-
-  function updateStreak(){
-    const cur=computeStreak();
-    if(cur>bestStreakOverall)bestStreakOverall=cur;
-    document.getElementById('bestStreak').textContent=bestStreakOverall;
-    document.getElementById('currentStreak').textContent=cur;
-    document.getElementById('streakLabel').textContent=`streak: ${cur}d`;
-    const fw=document.getElementById('fireStreakWrap');
-    const todayFull=isFullDay(getTodayKey());
-    if(todayFull&&!fw.classList.contains('lit'))fw.classList.add('lit');
-    else if(!todayFull&&fw.classList.contains('lit'))fw.classList.remove('lit');
-  }
-
-  function renderCatFilters(){
-    const wrap=document.getElementById('catFilters');
-    const cats=getAllCategories();
-    wrap.innerHTML='';
-    if(cats.length<=2){wrap.style.display='none';return;}
-    wrap.style.display='flex';
-    cats.forEach(cat=>{
-      const chip=document.createElement('button');
-      chip.className='cat-chip'+(cat===activeFilter?' active':'');
-      chip.textContent=cat;
-      chip.addEventListener('click',()=>{activeFilter=cat;renderCatFilters();renderHabits();});
-      wrap.appendChild(chip);
-    });
-  }
-
-  function renderHabits(){
-    renderCatFilters();
-    const container=document.getElementById('habitsListContainer');
-    const filtered=activeFilter==='All'?habits:habits.filter(h=>h.category===activeFilter);
-    if(!habits.length){container.innerHTML=`<div class="empty-state"><div class="empty-icon">○</div><p>No rituals yet.<br>Tap + to begin.</p></div>`;return;}
-    if(!filtered.length){container.innerHTML=`<div class="empty-state"><p>No habits in this category.</p></div>`;return;}
-    const todayData=completions[getTodayKey()]||{};
-    container.innerHTML='';
-    filtered.forEach((h,i)=>{
-      const done=!!todayData[h.id];
-      const hStreak=computeHabitStreak(h.id);
-      const hRate=computeHabitRate(h.id);
-      const rateClass=hRate>=75?'high':hRate>=40?'mid':'low';
-      const realIdx=habits.indexOf(h);
-      const row=document.createElement('div');
-      row.className=`habit-row${done?' done':''}`;
-      row.style.animationDelay=`${i*30}ms`;
-      row.dataset.idx=realIdx;
-      row.draggable=true;
-      row.innerHTML=`
-        <span class="drag-handle" title="Drag to reorder">⠿</span>
-        <div class="habit-check-wrap"><svg class="check-icon" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="habit-info">
-          <div class="habit-name">${escHtml(h.name)}</div>
-          <div class="habit-meta">
-            <span class="habit-cat">${escHtml(h.category)}</span>
-            ${hStreak>0?`<span class="habit-streak-badge${hStreak>=3?' hot':''}"><span>${hStreak>=3?'🔥':'·'}</span>${hStreak}d</span>`:''}
-            ${hRate>0?`<span class="habit-rate-badge ${rateClass}">${hRate}%</span>`:''}
-          </div>
-        </div>
-        <button class="habit-del" data-id="${h.id}">✕</button>`;
-      row.addEventListener('click',e=>{if(e.target.closest('.habit-del')||e.target.closest('.drag-handle'))return;toggleHabit(h.id,!done);});
-      row.querySelector('.habit-del').addEventListener('click',e=>{e.stopPropagation();deleteHabit(h.id);});
-      row.addEventListener('dragstart',e=>{dragSrcIdx=realIdx;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-      row.addEventListener('dragend',()=>{row.classList.remove('dragging');container.querySelectorAll('.habit-row').forEach(r=>r.classList.remove('drag-over'));});
-      row.addEventListener('dragover',e=>{e.preventDefault();row.classList.add('drag-over');});
-      row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
-      row.addEventListener('drop',e=>{
-        e.preventDefault();row.classList.remove('drag-over');
-        const targetIdx=parseInt(row.dataset.idx);
-        if(dragSrcIdx===null||dragSrcIdx===targetIdx)return;
-        const moved=habits.splice(dragSrcIdx,1)[0];
-        habits.splice(targetIdx,0,moved);
-        dragSrcIdx=null;renderAll();
-      });
-      container.appendChild(row);
-    });
-  }
-
-  function toggleHabit(id,checked){
-    const key=getTodayKey();
-    if(!completions[key])completions[key]={};
-    if(checked)completions[key][id]=true;else delete completions[key][id];
-    if(!Object.keys(completions[key]).length)delete completions[key];
-    renderAll();
-    if(window.navigator.vibrate)window.navigator.vibrate(25);
-    if(getDayPct(key)===100){
-      document.getElementById('progressCard').classList.add('pulse-reward');
-      setTimeout(()=>document.getElementById('progressCard').classList.remove('pulse-reward'),800);
+    let cnt = 0, total = 0;
+    for(const day in completions){
+      if(isFuture(day)) continue;
+      total++;
+      if(completions[day]?.[habitId]) cnt++;
     }
+    return total ? Math.round((cnt/total)*100) : 0;
   }
 
-  function addHabit(name,cat){
-    const n=name.trim();if(!n)return false;
-    habits.push({id:`${Date.now()}-${Math.random().toString(36).substr(2,6)}`,name:n,category:cat||'Health'});
-    renderAll();return true;
+  /* ─────────────────────────────────────────
+     UPDATE STREAK WIDGET (no DOM rebuild)
+  ───────────────────────────────────────── */
+  function updateStreak(){
+    const cur = computeStreak();
+    if(cur > bestStreakOverall) bestStreakOverall = cur;
+    document.getElementById('bestStreak').textContent = bestStreakOverall;
+    document.getElementById('currentStreak').textContent = cur;
+    document.getElementById('streakLabel').textContent = `streak: ${cur}d`;
+    const fw = document.getElementById('fireStreakWrap');
+    const todayFull = isFullDay(getTodayKey());
+    if(todayFull && !fw.classList.contains('lit')) fw.classList.add('lit');
+    else if(!todayFull && fw.classList.contains('lit')) fw.classList.remove('lit');
   }
 
-  function deleteHabit(id){
-    habits=habits.filter(h=>h.id!==id);
-    for(const day in completions)if(completions[day])delete completions[day][id];
-    renderAll();
-  }
-
+  /* ─────────────────────────────────────────
+     PROGRESS CARD (no DOM rebuild)
+  ───────────────────────────────────────── */
   function updateProgress(){
-    const pct=getDayPct(getTodayKey()),floor=Math.floor(pct);
-    const done=habits.filter(h=>(completions[getTodayKey()]||{})[h.id]).length,total=habits.length;
-    document.getElementById('completionPercent').textContent=`${floor}%`;
-    document.getElementById('progressFill').style.width=`${pct}%`;
-    document.getElementById('habitsCountLabel').textContent=`${done} of ${total} complete`;
-    const c=251;
-    document.getElementById('ringFill').style.strokeDashoffset=c-(pct/100)*c;
-    document.getElementById('ringFill').style.strokeDasharray=c;
-    const hl=['Start your <em>rituals.</em>','Keep <em>going.</em>','You\'re <em>building</em> it.','Almost <em>there.</em>','Day <em>conquered.</em>'];
-    document.getElementById('progressHeadline').innerHTML=hl[pct===0?0:pct<30?1:pct<60?2:pct<100?3:4];
+    // Progress card always reflects TODAY regardless of navigator offset
+    const pct = getDayPct(getTodayKey()), floor = Math.floor(pct);
+    const done = habits.filter(h => (completions[getTodayKey()]||{})[h.id]).length;
+    const total = habits.length;
+    document.getElementById('completionPercent').textContent = `${floor}%`;
+    document.getElementById('progressFill').style.width = `${pct}%`;
+    document.getElementById('habitsCountLabel').textContent = `${done} of ${total} complete`;
+    const c = 251;
+    document.getElementById('ringFill').style.strokeDashoffset = c - (pct/100)*c;
+    document.getElementById('ringFill').style.strokeDasharray = c;
+    const hl = ['Start your <em>rituals.</em>','Keep <em>going.</em>','You\'re <em>building</em> it.','Almost <em>there.</em>','Day <em>conquered.</em>'];
+    document.getElementById('progressHeadline').innerHTML = hl[pct===0?0:pct<30?1:pct<60?2:pct<100?3:4];
   }
 
+  /* ─────────────────────────────────────────
+     QUOTE & DATE (unchanged)
+  ───────────────────────────────────────── */
   function updateQuote(){
-    const qs=[
+    const qs = [
       {t:"You are stopping you.",a:"David Goggins"},
       {t:"Don't stop when you're tired. Stop when you're done.",a:"David Goggins"},
       {t:"Be obsessed or be average.",a:"Grant Cardone"},
@@ -554,54 +587,267 @@
       {t:"Small daily improvements lead to stunning results.",a:"Robin Sharma"},
       {t:"The chains of habit are too light to be felt until they are too heavy to be broken.",a:"Warren Buffett"}
     ];
-    const q=qs[new Date().getDate()%qs.length];
-    document.getElementById('dailyQuote').textContent=`"${q.t}"`;
-    document.getElementById('quoteAuthor').textContent=`— ${q.a}`;
+    const q = qs[new Date().getDate() % qs.length];
+    document.getElementById('dailyQuote').textContent = `"${q.t}"`;
+    document.getElementById('quoteAuthor').textContent = `— ${q.a}`;
   }
 
-  function updateDate(){document.getElementById('currentDateBubble').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});}
+  function updateDate(){
+    document.getElementById('currentDateBubble').textContent =
+      new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+  }
 
-  /* ─── THIS WEEK DOTS (7 squares) ─── */
+  /* ─────────────────────────────────────────
+     WEEK DOTS (no DOM rebuild on toggle)
+  ───────────────────────────────────────── */
   function renderWeekDotsMain(){
-    const container=document.getElementById('weekDotsMain');
-    if(!container)return;
-    const days=['M','T','W','T','F','S','S'];
-    container.innerHTML='';
-    const today=new Date();
-    const dow=today.getDay();
-    const diffToMon=dow===0?6:dow-1;
-    const monday=new Date(today);
-    monday.setDate(today.getDate()-diffToMon);
-
-    for(let i=0;i<7;i++){
-      const d=new Date(monday);
-      d.setDate(monday.getDate()+i);
-      const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-      const pct=getDayPct(key);
-      const isToday=key===getTodayKey();
-      const future=isFuture(key);
-
-      const col=document.createElement('div');
-      col.className='week-dot-col';
-
-      const label=document.createElement('div');
-      label.className='week-dot-day';
-      label.textContent=days[i];
-
-      const dot=document.createElement('div');
-      dot.className='week-dot';
-      if(!future){
-        if(pct===100)dot.classList.add('full');
-        else if(pct>0)dot.classList.add('partial');
-      }
-      if(isToday)dot.classList.add('today-mark');
-
-      col.appendChild(label);
-      col.appendChild(dot);
-      container.appendChild(col);
+    const container = document.getElementById('weekDotsMain');
+    if(!container) return;
+    const days = ['M','T','W','T','F','S','S'];
+    container.innerHTML = '';
+    const today = new Date();
+    const dow = today.getDay();
+    const diffToMon = dow===0 ? 6 : dow-1;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - diffToMon);
+    for(let i = 0; i < 7; i++){
+      const d = new Date(monday); d.setDate(monday.getDate()+i);
+      const key = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const pct = getDayPct(key);
+      const isToday = key === getTodayKey();
+      const future = isFuture(key);
+      const col = document.createElement('div'); col.className = 'week-dot-col';
+      const label = document.createElement('div'); label.className = 'week-dot-day'; label.textContent = days[i];
+      const dot = document.createElement('div'); dot.className = 'week-dot';
+      if(!future){ if(pct===100) dot.classList.add('full'); else if(pct>0) dot.classList.add('partial'); }
+      if(isToday) dot.classList.add('today-mark');
+      col.appendChild(label); col.appendChild(dot); container.appendChild(col);
     }
   }
 
+  /* ─────────────────────────────────────────
+     CAT FILTERS
+  ───────────────────────────────────────── */
+  function renderCatFilters(){
+    const wrap = document.getElementById('catFilters');
+    const cats = getAllCategories();
+    wrap.innerHTML = '';
+    if(cats.length <= 2){ wrap.style.display = 'none'; return; }
+    wrap.style.display = 'flex';
+    cats.forEach(cat => {
+      const chip = document.createElement('button');
+      chip.className = 'cat-chip' + (cat===activeFilter?' active':'');
+      chip.textContent = cat;
+      chip.addEventListener('click', () => { activeFilter = cat; renderCatFilters(); renderHabits(); });
+      wrap.appendChild(chip);
+    });
+  }
+
+  /* ─────────────────────────────────────────
+     DAY NAVIGATOR
+  ───────────────────────────────────────── */
+  function updateDayNav(){
+    const label = document.getElementById('dayNavLabel');
+    const prevBtn = document.getElementById('dayNavPrev');
+    const nextBtn = document.getElementById('dayNavNext');
+    const section = document.getElementById('habitsSection');
+
+    label.textContent = getViewDateLabel(viewOffset);
+    label.classList.toggle('past', viewOffset < 0);
+
+    // Can go back up to 6 days (0 to -6)
+    prevBtn.disabled = viewOffset <= -6;
+    // Can't go forward past today
+    nextBtn.disabled = viewOffset >= 0;
+
+    // Dim the + button when viewing past days
+    section.classList.toggle('past-view', viewOffset < 0);
+  }
+
+  document.getElementById('dayNavPrev').addEventListener('click', () => {
+    if(viewOffset > -6){ viewOffset--; updateDayNav(); renderHabits(); }
+  });
+  document.getElementById('dayNavNext').addEventListener('click', () => {
+    if(viewOffset < 0){ viewOffset++; updateDayNav(); renderHabits(); }
+  });
+  // Clicking the label returns to today
+  document.getElementById('dayNavLabel').addEventListener('click', () => {
+    if(viewOffset < 0){ viewOffset = 0; updateDayNav(); renderHabits(); }
+  });
+
+  /* ─────────────────────────────────────────
+     HABITS LIST — surgically patched, no full rebuild
+  ───────────────────────────────────────── */
+
+  /**
+   * Full render of the habits list.
+   * Called on: initial load, day navigation, add/delete, drag-reorder, filter change.
+   * Does NOT trigger the slide-up animation on existing rows.
+   * `animateNew` — id of one newly added habit to animate.
+   */
+  function renderHabits(animateNew){
+    renderCatFilters();
+    const container = document.getElementById('habitsListContainer');
+    const viewKey = getViewKey(viewOffset);
+    const filtered = activeFilter==='All' ? habits : habits.filter(h => h.category===activeFilter);
+
+    if(!habits.length){
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">○</div><p>No rituals yet.<br>Tap + to begin.</p></div>`;
+      return;
+    }
+    if(!filtered.length){
+      container.innerHTML = `<div class="empty-state"><p>No habits in this category.</p></div>`;
+      return;
+    }
+
+    const dayData = completions[viewKey] || {};
+
+    // Build a map of existing rows by habit id so we can reuse them
+    const existing = {};
+    container.querySelectorAll('.habit-row[data-hid]').forEach(el => {
+      existing[el.dataset.hid] = el;
+    });
+
+    const newOrder = [];
+    filtered.forEach((h, i) => {
+      const done = !!dayData[h.id];
+      const hStreak = computeHabitStreak(h.id);
+      const hRate = computeHabitRate(h.id);
+      const rateClass = hRate>=75?'high':hRate>=40?'mid':'low';
+      const realIdx = habits.indexOf(h);
+
+      let row = existing[h.id];
+      if(row){
+        // Row already in DOM — update state classes without rebuilding
+        row.classList.toggle('done', done);
+        row.dataset.idx = realIdx;
+        // Update check circle
+        const cw = row.querySelector('.habit-check-wrap');
+        if(cw){ /* visual handled by CSS .done */ }
+        // Update name/meta (cheap — only if text changed, which it won't mid-session)
+        // Drag state
+      } else {
+        // Brand new row
+        row = document.createElement('div');
+        row.className = 'habit-row' + (done?' done':'');
+        if(animateNew && h.id === animateNew) row.classList.add('new-row');
+        row.dataset.hid = h.id;
+        row.dataset.idx = realIdx;
+        row.draggable = (viewOffset === 0); // drag only for today
+        row.innerHTML = `
+          <span class="drag-handle" title="Drag to reorder">⠿</span>
+          <div class="habit-check-wrap"><svg class="check-icon" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="habit-info">
+            <div class="habit-name">${escHtml(h.name)}</div>
+            <div class="habit-meta">
+              <span class="habit-cat">${escHtml(h.category)}</span>
+              ${hStreak>0?`<span class="habit-streak-badge${hStreak>=3?' hot':''}"><span>${hStreak>=3?'🔥':'·'}</span>${hStreak}d</span>`:''}
+              ${hRate>0?`<span class="habit-rate-badge ${rateClass}">${hRate}%</span>`:''}
+            </div>
+          </div>
+          <button class="habit-del" data-id="${h.id}">✕</button>`;
+
+        // Toggle click
+        row.addEventListener('click', e => {
+          if(e.target.closest('.habit-del') || e.target.closest('.drag-handle')) return;
+          const isDone = row.classList.contains('done');
+          toggleHabitOnDay(h.id, !isDone, getViewKey(viewOffset), row);
+        });
+        row.querySelector('.habit-del').addEventListener('click', e => {
+          e.stopPropagation();
+          deleteHabit(h.id);
+        });
+
+        // Drag (today-only)
+        if(viewOffset === 0){
+          row.addEventListener('dragstart', e => {
+            dragSrcIdx = realIdx; row.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+          });
+          row.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+            container.querySelectorAll('.habit-row').forEach(r => r.classList.remove('drag-over'));
+          });
+          row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('drag-over'); });
+          row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+          row.addEventListener('drop', e => {
+            e.preventDefault(); row.classList.remove('drag-over');
+            const targetIdx = parseInt(row.dataset.idx);
+            if(dragSrcIdx===null || dragSrcIdx===targetIdx) return;
+            const moved = habits.splice(dragSrcIdx,1)[0];
+            habits.splice(targetIdx,0,moved);
+            dragSrcIdx = null;
+            renderHabits();
+            save();
+          });
+        }
+      }
+      newOrder.push(row);
+    });
+
+    // Re-order / attach without touching unrelated DOM
+    newOrder.forEach((row, i) => {
+      if(container.children[i] !== row) container.insertBefore(row, container.children[i]||null);
+    });
+    // Remove any surplus rows (e.g. after delete)
+    while(container.children.length > newOrder.length) container.removeChild(container.lastChild);
+  }
+
+  /* ─────────────────────────────────────────
+     TOGGLE — surgical DOM patch, no full re-render
+  ───────────────────────────────────────── */
+  function toggleHabitOnDay(id, checked, dayKey, rowEl){
+    if(!completions[dayKey]) completions[dayKey] = {};
+    if(checked) completions[dayKey][id] = true;
+    else delete completions[dayKey][id];
+    if(!Object.keys(completions[dayKey]).length) delete completions[dayKey];
+
+    // Patch just this row
+    rowEl.classList.toggle('done', checked);
+
+    // Update progress + streak (no habits list rebuild)
+    updateProgress();
+    updateStreak();
+    renderWeekDotsMain();
+    save();
+
+    if(window.navigator.vibrate) window.navigator.vibrate(25);
+
+    if(dayKey === getTodayKey() && getDayPct(dayKey)===100){
+      document.getElementById('progressCard').classList.add('pulse-reward');
+      setTimeout(() => document.getElementById('progressCard').classList.remove('pulse-reward'), 800);
+    }
+  }
+
+  /* ─────────────────────────────────────────
+     ADD / DELETE HABITS
+  ───────────────────────────────────────── */
+  function addHabit(name, cat){
+    const n = name.trim(); if(!n) return false;
+    const newId = `${Date.now()}-${Math.random().toString(36).substr(2,6)}`;
+    habits.push({ id: newId, name: n, category: cat||'Health' });
+    // Render habits list — new row gets slide-up animation, others don't
+    renderHabits(newId);
+    updateProgress();
+    updateStreak();
+    renderWeekDotsMain();
+    save();
+    return true;
+  }
+
+  function deleteHabit(id){
+    habits = habits.filter(h => h.id !== id);
+    for(const day in completions) if(completions[day]) delete completions[day][id];
+    renderHabits();
+    updateProgress();
+    updateStreak();
+    renderWeekDotsMain();
+    save();
+  }
+
+  /* ─────────────────────────────────────────
+     FULL RENDER (used on load / midnight rollover / drag reorder)
+  ───────────────────────────────────────── */
   function renderAll(){
     renderHabits();
     renderWeekDotsMain();
@@ -612,53 +858,111 @@
     save();
   }
 
-  function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify({habits,completions,moodLog,bestStreakOverall,streakFreezeUsed,lastFreezeDate,freezeUsedThisMonth,freezeMonthKey:getMonthKey()}));}
+  /* ─────────────────────────────────────────
+     PERSIST
+  ───────────────────────────────────────── */
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      habits, completions, moodLog, bestStreakOverall,
+      streakFreezeUsed, lastFreezeDate, freezeUsedThisMonth,
+      freezeMonthKey: getMonthKey()
+    }));
+  }
 
   function load(){
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(raw){try{const d=JSON.parse(raw);if(d.habits)habits=d.habits;if(d.completions)completions=d.completions;if(d.moodLog)moodLog=d.moodLog;if(typeof d.bestStreakOverall==='number')bestStreakOverall=d.bestStreakOverall;if(d.streakFreezeUsed)streakFreezeUsed=d.streakFreezeUsed;if(d.lastFreezeDate)lastFreezeDate=d.lastFreezeDate;if(d.freezeUsedThisMonth)freezeUsedThisMonth=d.freezeUsedThisMonth;if(d.freezeMonthKey&&d.freezeMonthKey!==getMonthKey())freezeUsedThisMonth=false;}catch(e){}}
-    if(!habits.length){
-      habits=[{id:'d1',name:'4am wake up',category:'Health'},{id:'d2',name:'Cold exposure',category:'Health'},{id:'d3',name:'Deep work block (90min)',category:'Work'},{id:'d4',name:'Journaling',category:'Mind'}];
-      const tk=getTodayKey();if(!completions[tk])completions[tk]={};completions[tk]['d1']=true;
-      const y=new Date();y.setDate(y.getDate()-1);const yk=`${y.getFullYear()}-${pad(y.getMonth()+1)}-${pad(y.getDate())}`;if(!completions[yk])completions[yk]={};completions[yk]['d1']=true;completions[yk]['d2']=true;
-      for(let i=2;i<22;i++){const dx=new Date();dx.setDate(dx.getDate()-i);const dk=`${dx.getFullYear()}-${pad(dx.getMonth()+1)}-${pad(dx.getDate())}`;if(!completions[dk])completions[dk]={};if(Math.random()>.35)habits.forEach(h=>completions[dk][h.id]=true);else if(Math.random()>.4)completions[dk][habits[0].id]=true;}
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      try{
+        const d = JSON.parse(raw);
+        if(d.habits) habits = d.habits;
+        if(d.completions) completions = d.completions;
+        if(d.moodLog) moodLog = d.moodLog;
+        if(typeof d.bestStreakOverall==='number') bestStreakOverall = d.bestStreakOverall;
+        if(d.streakFreezeUsed) streakFreezeUsed = d.streakFreezeUsed;
+        if(d.lastFreezeDate) lastFreezeDate = d.lastFreezeDate;
+        if(d.freezeUsedThisMonth) freezeUsedThisMonth = d.freezeUsedThisMonth;
+        if(d.freezeMonthKey && d.freezeMonthKey !== getMonthKey()) freezeUsedThisMonth = false;
+      }catch(e){}
     }
-    if(!bestStreakOverall)bestStreakOverall=computeStreak();
+    if(!habits.length){
+      habits = [
+        {id:'d1',name:'4am wake up',category:'Health'},
+        {id:'d2',name:'Cold exposure',category:'Health'},
+        {id:'d3',name:'Deep work block (90min)',category:'Work'},
+        {id:'d4',name:'Journaling',category:'Mind'}
+      ];
+      const tk = getTodayKey();
+      if(!completions[tk]) completions[tk]={};
+      completions[tk]['d1'] = true;
+      const y = new Date(); y.setDate(y.getDate()-1);
+      const yk = `${y.getFullYear()}-${pad(y.getMonth()+1)}-${pad(y.getDate())}`;
+      if(!completions[yk]) completions[yk]={};
+      completions[yk]['d1']=true; completions[yk]['d2']=true;
+      for(let i=2;i<22;i++){
+        const dx=new Date(); dx.setDate(dx.getDate()-i);
+        const dk=`${dx.getFullYear()}-${pad(dx.getMonth()+1)}-${pad(dx.getDate())}`;
+        if(!completions[dk]) completions[dk]={};
+        if(Math.random()>.35) habits.forEach(h=>completions[dk][h.id]=true);
+        else if(Math.random()>.4) completions[dk][habits[0].id]=true;
+      }
+    }
+    if(!bestStreakOverall) bestStreakOverall = computeStreak();
   }
 
-  /* ─── MODAL ─── */
-  const modal=document.getElementById('habitModal');
-  const nameInput=document.getElementById('habitNameInput');
-  const catSelect=document.getElementById('categorySelect');
-  const customCatInput=document.getElementById('customCatInput');
+  /* ─────────────────────────────────────────
+     MODAL
+  ───────────────────────────────────────── */
+  const modal = document.getElementById('habitModal');
+  const nameInput = document.getElementById('habitNameInput');
+  const catSelect = document.getElementById('categorySelect');
+  const customCatInput = document.getElementById('customCatInput');
 
   function refreshCatOptions(){
-    const defaults=['Health','Work','Mind','Social'];
-    const customs=[...new Set(habits.map(h=>h.category).filter(c=>!defaults.includes(c)))];
-    catSelect.innerHTML='';
-    [...defaults,...customs].forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;catSelect.appendChild(o);});
-    const co=document.createElement('option');co.value='__custom__';co.textContent='+ Custom category…';catSelect.appendChild(co);
+    const defaults = ['Health','Work','Mind','Social'];
+    const customs = [...new Set(habits.map(h=>h.category).filter(c=>!defaults.includes(c)))];
+    catSelect.innerHTML = '';
+    [...defaults,...customs].forEach(c=>{
+      const o = document.createElement('option'); o.value=c; o.textContent=c; catSelect.appendChild(o);
+    });
+    const co = document.createElement('option'); co.value='__custom__'; co.textContent='+ Custom category…'; catSelect.appendChild(co);
   }
-  catSelect.addEventListener('change',()=>{
-    if(catSelect.value==='__custom__'){customCatInput.classList.add('show');customCatInput.focus();}
+  catSelect.addEventListener('change', () => {
+    if(catSelect.value==='__custom__'){ customCatInput.classList.add('show'); customCatInput.focus(); }
     else customCatInput.classList.remove('show');
   });
-  function openModal(){refreshCatOptions();modal.classList.add('active');setTimeout(()=>nameInput.focus(),200);}
-  function closeModal(){modal.classList.remove('active');customCatInput.classList.remove('show');nameInput.value='';catSelect.value='Health';}
-  document.getElementById('openModalBtn').addEventListener('click',openModal);
-  document.getElementById('cancelModalBtn').addEventListener('click',closeModal);
-  document.getElementById('confirmAddBtn').addEventListener('click',()=>{
-    let cat=catSelect.value;
-    if(cat==='__custom__')cat=customCatInput.value.trim()||'Other';
-    if(addHabit(nameInput.value,cat))closeModal();
-    else{nameInput.style.borderColor='rgba(255,80,80,.5)';setTimeout(()=>nameInput.style.borderColor='',700);}
-  });
-  nameInput.addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('confirmAddBtn').click();});
-  modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+  function openModal(){ refreshCatOptions(); modal.classList.add('active'); setTimeout(()=>nameInput.focus(),200); }
+  function closeModal(){ modal.classList.remove('active'); customCatInput.classList.remove('show'); nameInput.value=''; catSelect.value='Health'; }
 
-  load();renderAll();
-  let lastDate=getTodayKey();
-  setInterval(()=>{const nd=getTodayKey();if(nd!==lastDate){lastDate=nd;renderAll();}},30000);
+  document.getElementById('openModalBtn').addEventListener('click', openModal);
+  document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+  document.getElementById('confirmAddBtn').addEventListener('click', () => {
+    let cat = catSelect.value;
+    if(cat==='__custom__') cat = customCatInput.value.trim()||'Other';
+    if(addHabit(nameInput.value, cat)) closeModal();
+    else{ nameInput.style.borderColor='rgba(255,80,80,.5)'; setTimeout(()=>nameInput.style.borderColor='',700); }
+  });
+  nameInput.addEventListener('keypress', e => { if(e.key==='Enter') document.getElementById('confirmAddBtn').click(); });
+  modal.addEventListener('click', e => { if(e.target===modal) closeModal(); });
+
+  /* ─────────────────────────────────────────
+     INIT
+  ───────────────────────────────────────── */
+  load();
+  updateDayNav();
+  renderAll();
+
+  // Midnight rollover check
+  let lastDate = getTodayKey();
+  setInterval(() => {
+    const nd = getTodayKey();
+    if(nd !== lastDate){
+      lastDate = nd;
+      // Reset to today on midnight
+      viewOffset = 0;
+      updateDayNav();
+      renderAll();
+    }
+  }, 30000);
 </script>
 </body>
 </html>
