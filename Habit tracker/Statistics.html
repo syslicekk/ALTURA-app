@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ALTURA — Statistics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#070707;--surface:#0f0f0f;--surface2:#161616;--surface3:#1c1c1c;
+      --border:rgba(255,255,255,0.06);--text:#f0ede8;--text-muted:#555;--text-dim:#282828;
+      --accent:#c8f53e;--accent-dim:rgba(200,245,62,0.1);--accent-glow:rgba(200,245,62,0.22);
+      --gold:#f5c842;--white:#ffffff;
+      --r-xl:22px;--r-lg:16px;--r-md:12px;--r-sm:8px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.5;}
+    .app{max-width:480px;margin:0 auto;padding:0 0 90px;position:relative;z-index:1;}
+
+    /* ── PAGE HEADER ── */
+    .page-header{padding:24px 20px 16px;position:sticky;top:0;z-index:200;background:linear-gradient(to bottom,rgba(7,7,7,1) 65%,rgba(7,7,7,0));}
+    .page-back{display:inline-flex;align-items:center;gap:6px;font-size:.65rem;color:var(--text-muted);text-decoration:none;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;transition:color .15s;}
+    .page-back:hover{color:var(--text);}
+    .page-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:var(--white);}
+    .page-sub{font-size:.7rem;color:var(--text-muted);margin-top:2px;}
+
+    /* ── SECTION WRAPPER ── */
+    .section{padding:0 16px;display:flex;flex-direction:column;gap:10px;margin-bottom:10px;}
+
+    /* ── CARD ── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px 18px 18px;}
+    .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+    .card-label{font-size:.62rem;font-weight:500;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);}
+    .card-val{font-size:.75rem;font-weight:600;color:var(--accent);}
+
+    /* ── STAT GRID (4-tile) ── */
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 14px;}
+    .stat-tile .label{font-size:.58rem;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin-bottom:8px;}
+    .stat-tile .value{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:1px;color:var(--white);line-height:1;}
+    .stat-tile .sub{font-size:.58rem;color:var(--text-muted);margin-top:4px;}
+    .stat-tile.gold-val .value{color:var(--gold);}
+    .stat-tile.green-val .value{color:var(--accent);}
+    .stat-tile.purple-val .value{color:#a78bfa;}
+    .stat-tile.streak-val .value{color:#ff9800;}
+
+    /* ── WEEKLY BARS ── */
+    .bar-chart{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;align-items:flex-end;height:80px;}
+    .bar-col{display:flex;flex-direction:column;align-items:center;gap:5px;}
+    .bar-fill-wrap{width:100%;flex:1;display:flex;align-items:flex-end;border-radius:6px;overflow:hidden;background:var(--surface2);}
+    .bar-segment{width:100%;border-radius:6px 6px 0 0;transition:height .6s cubic-bezier(.4,0,.2,1);}
+    .bar-day-label{font-size:.52rem;text-transform:uppercase;color:var(--text-dim);letter-spacing:.4px;}
+    .bar-today .bar-day-label{color:var(--accent);}
+
+    /* ── SPARKLINE ── */
+    .sparkline-wrap{position:relative;height:64px;margin-top:4px;}
+    .sparkline-svg{width:100%;height:100%;overflow:visible;}
+
+    /* ── WEEK DOTS ── */
+    .week-dots-inner{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+    .week-dot-col{display:flex;flex-direction:column;align-items:center;gap:4px;}
+    .week-dot-day{font-size:.52rem;text-transform:uppercase;color:var(--text-dim);letter-spacing:.4px;}
+    .week-dot{width:100%;aspect-ratio:1;border-radius:5px;background:var(--surface2);border:1px solid var(--border);transition:all .2s;}
+    .week-dot.full{background:var(--accent);border-color:var(--accent);}
+    .week-dot.partial{background:rgba(200,245,62,.3);border-color:rgba(200,245,62,.25);}
+    .week-dot.today-mark{border-color:var(--accent)!important;}
+
+    /* ── HEATMAP ── */
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+    .cal-month-btn{font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:2px;color:var(--white);background:none;border:none;cursor:pointer;padding:0;}
+    .cal-arrow{background:var(--surface2);border:1px solid var(--border);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem;color:var(--text-muted);transition:all .15s;}
+    .cal-arrow:hover{color:var(--white);}
+    .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:6px;}
+    .cal-weekdays span{font-size:.57rem;font-weight:500;text-transform:uppercase;letter-spacing:.4px;color:var(--text-dim);padding:3px 0;}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+    .cal-cell{aspect-ratio:1;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:400;cursor:pointer;transition:all .12s;color:var(--text-muted);border:1px solid transparent;user-select:none;position:relative;}
+    .cal-cell.cur{color:#777;}
+    .cal-cell.today{border-color:var(--accent)!important;color:var(--accent);font-weight:600;}
+    .cal-cell.future{opacity:.2;cursor:default;}
+    .cal-cell.other{opacity:.15;}
+    .cal-cell:not(.future):active{transform:scale(.92);}
+    .mood-dot{position:absolute;bottom:2px;right:2px;width:4px;height:4px;border-radius:50%;}
+
+    /* ── PER-HABIT TABLE ── */
+    .habit-stat-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+    .habit-stat-row:last-child{border-bottom:none;}
+    .hsr-info{flex:1;min-width:0;}
+    .hsr-name{font-size:.85rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .hsr-cat{font-size:.56rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px;}
+    .hsr-bar-wrap{width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;flex-shrink:0;}
+    .hsr-bar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+    .hsr-pct{font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:.5px;width:36px;text-align:right;flex-shrink:0;}
+    .hsr-streak{font-size:.6rem;color:var(--text-muted);width:40px;text-align:right;flex-shrink:0;}
+    .empty-stat{text-align:center;padding:24px;color:var(--text-muted);font-size:.8rem;}
+
+    /* ── CATEGORY BREAKDOWN ── */
+    .cat-breakdown{display:flex;flex-direction:column;gap:10px;}
+    .cat-row{}
+    .cat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+    .cat-name{font-size:.78rem;color:var(--text);}
+    .cat-pct{font-family:'Bebas Neue',sans-serif;font-size:.9rem;letter-spacing:.5px;color:var(--accent);}
+    .cat-bar-bg{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+    .cat-bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .5s ease;}
+
+    /* ── MONTH MODAL ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(14px);z-index:1000;display:flex;align-items:flex-end;justify-content:center;opacity:0;visibility:hidden;transition:all .2s;}
+    .modal-overlay.active{opacity:1;visibility:visible;}
+    .modal-sheet{background:#111;border:1px solid var(--border);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:28px 22px 44px;width:100%;max-width:480px;transform:translateY(36px);transition:transform .25s cubic-bezier(.34,1.2,.64,1);}
+    .modal-overlay.active .modal-sheet{transform:translateY(0);}
+    .modal-handle{width:34px;height:4px;background:var(--surface2);border-radius:4px;margin:0 auto 24px;}
+    .modal-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--white);margin-bottom:18px;}
+    .year-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+    .year-label{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;color:var(--white);}
+    .year-btn{background:var(--surface2);border:1px solid var(--border);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:.85rem;transition:all .15s;}
+    .year-btn:hover{color:var(--white);}
+    .months-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:18px;}
+    .month-opt{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:11px 7px;text-align:center;font-size:.78rem;color:var(--text-muted);cursor:pointer;transition:all .15s;}
+    .month-opt:hover{color:var(--white);}
+    .month-opt.active-m{border-color:var(--accent);color:var(--accent);}
+    .modal-confirm{background:var(--accent);border:none;border-radius:var(--r-md);padding:13px;color:#000;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;width:100%;transition:all .15s;}
+    .modal-confirm:hover{background:#d4f74a;}
+
+    /* ── HUB NAV ── */
+    .hub-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(10,10,10,.95);border-top:1px solid var(--border);backdrop-filter:blur(20px);display:flex;z-index:300;padding:0 0 env(safe-area-inset-bottom,0);}
+    .hub-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px 14px;cursor:pointer;font-size:.6rem;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);transition:color .15s;text-decoration:none;border:none;background:none;font-family:'DM Sans',sans-serif;}
+    .hub-item:hover{color:var(--text);}
+    .hub-item.active{color:var(--accent);}
+    .hub-icon{font-size:1.2rem;line-height:1;}
+    .hub-item.active .hub-icon{filter:drop-shadow(0 0 6px rgba(200,245,62,.5));}
+    ::-webkit-scrollbar{width:0;}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="page-header">
+    <a class="page-back" href="index.html">← Back</a>
+    <div class="page-title">Statistics</div>
+    <div class="page-sub" id="statsDateSub"></div>
+  </div>
+
+  <div class="section">
+
+    <!-- 4 STAT TILES -->
+    <div class="stat-grid">
+      <div class="stat-tile green-val">
+        <div class="label">Avg / 30d</div>
+        <div class="value" id="avgCompletion">0%</div>
+        <div class="sub">completion rate</div>
+      </div>
+      <div class="stat-tile gold-val">
+        <div class="label">Best week</div>
+        <div class="value" id="bestWeek">0</div>
+        <div class="sub">/ 7 perfect days</div>
+      </div>
+      <div class="stat-tile purple-val">
+        <div class="label">Perfect days</div>
+        <div class="value" id="perfectDays">0</div>
+        <div class="sub">all time 100%</div>
+      </div>
+      <div class="stat-tile streak-val">
+        <div class="label">Current streak</div>
+        <div class="value" id="currentStreak">0</div>
+        <div class="sub">days in a row</div>
+      </div>
+    </div>
+
+    <!-- WEEKLY WORKLOAD -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">Weekly Workload</span>
+        <span class="card-val" id="weekCount">0/7</span>
+      </div>
+      <div class="bar-chart" id="weekBarChart"></div>
+    </div>
+
+    <!-- 30-DAY CONSISTENCY SPARKLINE -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">30-Day Consistency</span>
+        <span class="card-val" id="consistencyScore">0%</span>
+      </div>
+      <div class="sparkline-wrap">
+        <svg class="sparkline-svg" id="sparklineSvg" preserveAspectRatio="none"></svg>
+      </div>
+    </div>
+
+    <!-- THIS WEEK DOTS -->
+    <div class="card">
+      <div class="card-header" style="margin-bottom:10px;">
+        <span class="card-label">This Week</span>
+      </div>
+      <div class="week-dots-inner" id="weekDots"></div>
+    </div>
+
+    <!-- HEATMAP CALENDAR -->
+    <div class="card">
+      <div class="cal-header">
+        <button class="cal-arrow" id="prevMonthBtn">‹</button>
+        <button class="cal-month-btn" id="monthYearLabel"></button>
+        <button class="cal-arrow" id="nextMonthBtn">›</button>
+      </div>
+      <div class="cal-weekdays"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+      <div class="cal-grid" id="calendarGrid"></div>
+    </div>
+
+    <!-- PER-HABIT BREAKDOWN -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">Habit Breakdown</span>
+      </div>
+      <div id="habitStatList"></div>
+    </div>
+
+    <!-- CATEGORY BREAKDOWN -->
+    <div class="card" style="margin-bottom:4px;">
+      <div class="card-header">
+        <span class="card-label">By Category</span>
+      </div>
+      <div class="cat-breakdown" id="catBreakdown"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- HUB NAV -->
+<nav class="hub-nav">
+  <a class="hub-item" href="index.html"><span class="hub-icon">◎</span><span>Today</span></a>
+  <a class="hub-item" href="Reflect.html"><span class="hub-icon">✦</span><span>Reflect</span></a>
+  <a class="hub-item active" href="Statistics.html"><span class="hub-icon">▦</span><span>Statistics</span></a>
+</nav>
+
+<!-- MONTH SELECTOR MODAL -->
+<div class="modal-overlay" id="monthSelectorModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="year-nav">
+      <button class="year-btn" id="yearPrevBtn">‹</button>
+      <span class="year-label" id="yearDisplay">2025</span>
+      <button class="year-btn" id="yearNextBtn">›</button>
+    </div>
+    <div class="months-grid" id="monthsGrid"></div>
+    <button class="modal-confirm" id="closeMonthSelector">Done</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY='altura_v5';
+  const pad=n=>String(n).padStart(2,'0');
+  function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+  function isFuture(key){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=key.split('-').map(Number);return new Date(y,m-1,d)>t;}
+  function cellColor(pct,habits){if(!habits.length||pct===0)return'var(--surface2)';if(pct===100)return'var(--accent)';return`rgba(200,245,62,${0.1+(pct/100)*0.65})`;}
+
+  let habits=[],completions={},moodLog={},bestStreakOverall=0,streakFreezeUsed=false,lastFreezeDate=null;
+  let currentViewYear=new Date().getFullYear(),currentViewMonth=new Date().getMonth();
+  const moodColors=['','#ff6b6b','#ffa94d','#ffe066','#74c0fc','#c8f53e'];
+
+  function loadData(){
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){try{const d=JSON.parse(raw);if(d.habits)habits=d.habits;if(d.completions)completions=d.completions;if(d.moodLog)moodLog=d.moodLog;if(typeof d.bestStreakOverall==='number')bestStreakOverall=d.bestStreakOverall;if(d.streakFreezeUsed)streakFreezeUsed=d.streakFreezeUsed;if(d.lastFreezeDate)lastFreezeDate=d.lastFreezeDate;}catch(e){}}
+  }
+
+  function getDayPct(key){
+    if(!habits.length||isFuture(key))return 0;
+    const map=completions[key]||{};
+    return(habits.filter(h=>map[h.id]).length/habits.length)*100;
+  }
+
+  function computeStreak(){
+    if(!habits.length)return 0;
+    let streak=0,cursor=new Date();cursor.setHours(0,0,0,0);let usedFreeze=false;
+    for(let i=0;i<5000;i++){
+      const key=`${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
+      if(getDayPct(key)===100){streak++;usedFreeze=false;}
+      else{if(!usedFreeze&&streakFreezeUsed&&lastFreezeDate===key){streak++;usedFreeze=true;}else break;}
+      cursor.setDate(cursor.getDate()-1);
+    }
+    return streak;
+  }
+
+  function computeHabitStreak(habitId){
+    let streak=0,cursor=new Date();cursor.setHours(0,0,0,0);
+    for(let i=0;i<5000;i++){
+      const key=`${cursor.getFullYear()}-${pad(cursor.getMonth()+1)}-${pad(cursor.getDate())}`;
+      if(isFuture(key)){cursor.setDate(cursor.getDate()-1);continue;}
+      if(completions[key]?.[habitId])streak++;else break;
+      cursor.setDate(cursor.getDate()-1);
+    }
+    return streak;
+  }
+
+  function computeHabitRate(habitId){
+    let cnt=0,total=0;
+    for(const day in completions){if(isFuture(day))continue;total++;if(completions[day]?.[habitId])cnt++;}
+    return total?Math.round((cnt/total)*100):0;
+  }
+
+  function avgLast30(){
+    let sum=0;const d=new Date();
+    for(let i=0;i<30;i++){sum+=getDayPct(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`);d.setDate(d.getDate()-1);}
+    return Math.round(sum/30);
+  }
+
+  function bestWeekEver(){
+    let max=0,today=new Date();
+    for(let i=0;i<52;i++){let wc=0;for(let j=0;j<7;j++){const day=new Date(today);day.setDate(today.getDate()-j);if(getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`)===100)wc++;}if(wc>max)max=wc;today.setDate(today.getDate()-7);}
+    return max;
+  }
+
+  function weeklyCount(){
+    let c=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);if(getDayPct(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`)===100)c++;}
+    return c;
+  }
+
+  function countPerfectDays(){
+    let c=0;for(const day in completions){if(!isFuture(day)&&getDayPct(day)===100)c++;}return c;
+  }
+
+  /* ── RENDER TILES ── */
+  function renderTiles(){
+    const avg=avgLast30();
+    document.getElementById('avgCompletion').textContent=`${avg}%`;
+    document.getElementById('consistencyScore').textContent=`${avg}%`;
+    document.getElementById('bestWeek').textContent=bestWeekEver();
+    document.getElementById('perfectDays').textContent=countPerfectDays();
+    document.getElementById('currentStreak').textContent=computeStreak();
+    document.getElementById('weekCount').textContent=`${weeklyCount()}/7`;
+  }
+
+  /* ── WEEKLY BARS ── */
+  function renderWeekBars(){
+    const container=document.getElementById('weekBarChart');
+    const days=['M','T','W','T','F','S','S'];
+    container.innerHTML='';
+    const today=new Date(),dow=today.getDay(),diffToMon=dow===0?6:dow-1;
+    const monday=new Date(today);monday.setDate(today.getDate()-diffToMon);
+    for(let i=0;i<7;i++){
+      const d=new Date(monday);d.setDate(monday.getDate()+i);
+      const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const pct=getDayPct(key),isToday=key===getTodayKey(),future=isFuture(key);
+      const col=document.createElement('div');col.className='bar-col'+(isToday?' bar-today':'');
+      const h=future?0:Math.max((pct/100)*100,pct>0?8:0);
+      const color=pct===100?'var(--accent)':pct>0?`rgba(200,245,62,${0.15+(pct/100)*.5})`:'transparent';
+      col.innerHTML=`<div class="bar-fill-wrap" style="height:62px;"><div class="bar-segment" style="height:${h}%;background:${color};width:100%;"></div></div><div class="bar-day-label">${days[i]}</div>`;
+      container.appendChild(col);
+    }
+  }
+
+  /* ── SPARKLINE ── */
+  function renderSparkline(){
+    const svg=document.getElementById('sparklineSvg');svg.innerHTML='';
+    const pts=[],d=new Date();
+    for(let i=29;i>=0;i--){const day=new Date(d);day.setDate(d.getDate()-i);pts.push(getDayPct(`${day.getFullYear()}-${pad(day.getMonth()+1)}-${pad(day.getDate())}`));}
+    const W=440,H=64,n=pts.length,xStep=W/(n-1);
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+    defs.innerHTML=`<linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c8f53e" stop-opacity="0.35"/><stop offset="100%" stop-color="#c8f53e" stop-opacity="0"/></linearGradient>`;
+    svg.appendChild(defs);
+    let pathD='',areaD='';
+    pts.forEach((v,i)=>{
+      const px=i*xStep,py=(1-v/100)*H;
+      if(i===0){pathD+=`M${px},${py}`;areaD+=`M${px},${H} L${px},${py}`;}
+      else{const ox=(i-1)*xStep,oy=(1-pts[i-1]/100)*H,cx=(ox+px)/2;pathD+=` C${cx},${oy} ${cx},${py} ${px},${py}`;areaD+=` C${cx},${oy} ${cx},${py} ${px},${py}`;}
+    });
+    areaD+=` L${(n-1)*xStep},${H} Z`;
+    const area=document.createElementNS('http://www.w3.org/2000/svg','path');area.setAttribute('d',areaD);area.setAttribute('fill','url(#sg)');
+    const line=document.createElementNS('http://www.w3.org/2000/svg','path');line.setAttribute('d',pathD);line.setAttribute('fill','none');line.setAttribute('stroke','var(--accent)');line.setAttribute('stroke-width','1.8');line.setAttribute('stroke-linecap','round');
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.appendChild(area);svg.appendChild(line);
+    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',(n-1)*xStep);dot.setAttribute('cy',(1-pts[n-1]/100)*H);dot.setAttribute('r','4');dot.setAttribute('fill','var(--accent)');
+    svg.appendChild(dot);
+  }
+
+  /* ── WEEK DOTS ── */
+  function renderWeekDots(){
+    const container=document.getElementById('weekDots');const days=['M','T','W','T','F','S','S'];container.innerHTML='';
+    const today=new Date(),dow=today.getDay(),diffToMon=dow===0?6:dow-1;
+    const monday=new Date(today);monday.setDate(today.getDate()-diffToMon);
+    for(let i=0;i<7;i++){
+      const d=new Date(monday);d.setDate(monday.getDate()+i);
+      const key=`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const pct=getDayPct(key),isToday=key===getTodayKey(),future=isFuture(key);
+      const col=document.createElement('div');col.className='week-dot-col';
+      const label=document.createElement('div');label.className='week-dot-day';label.textContent=days[i];
+      const dot=document.createElement('div');dot.className='week-dot';
+      if(!future){if(pct===100)dot.classList.add('full');else if(pct>0)dot.classList.add('partial');}
+      if(isToday)dot.classList.add('today-mark');
+      col.appendChild(label);col.appendChild(dot);container.appendChild(col);
+    }
+  }
+
+  /* ── CALENDAR / HEATMAP ── */
+  function renderCalendar(){
+    const first=new Date(currentViewYear,currentViewMonth,1);
+    const startDow=first.getDay()===0?6:first.getDay()-1;
+    const daysInMonth=new Date(currentViewYear,currentViewMonth+1,0).getDate();
+    const prevDays=new Date(currentViewYear,currentViewMonth,0).getDate();
+    const grid=document.getElementById('calendarGrid');grid.innerHTML='';
+    const to=new Date(),ty=to.getFullYear(),tm=to.getMonth(),td=to.getDate();
+    for(let i=0;i<42;i++){
+      let date,year,month,isCur=true;
+      if(i<startDow){date=prevDays-(startDow-i)+1;year=currentViewMonth===0?currentViewYear-1:currentViewYear;month=currentViewMonth===0?11:currentViewMonth-1;isCur=false;}
+      else if(i>=startDow+daysInMonth){date=i-(startDow+daysInMonth)+1;year=currentViewMonth===11?currentViewYear+1:currentViewYear;month=currentViewMonth===11?0:currentViewMonth+1;isCur=false;}
+      else{date=i-startDow+1;year=currentViewYear;month=currentViewMonth;isCur=true;}
+      const key=`${year}-${pad(month+1)}-${pad(date)}`;
+      const pct=getDayPct(key),future=isFuture(key),isToday=(year===ty&&month===tm&&date===td);
+      const cell=document.createElement('div');cell.className='cal-cell';
+      if(isCur)cell.classList.add('cur');if(isToday)cell.classList.add('today');if(future)cell.classList.add('future');if(!isCur)cell.classList.add('other');
+      if(!future&&pct>0){cell.style.background=cellColor(pct,habits);if(pct===100)cell.style.color='#000';}
+      cell.textContent=date;
+      if(moodLog[key]&&!future){const md=document.createElement('div');md.className='mood-dot';md.style.background=moodColors[moodLog[key].mood]||'';cell.appendChild(md);}
+      grid.appendChild(cell);
+    }
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('monthYearLabel').textContent=`${months[currentViewMonth]} ${currentViewYear}`;
+  }
+
+  /* ── PER-HABIT BREAKDOWN ── */
+  function renderHabitStats(){
+    const container=document.getElementById('habitStatList');
+    if(!habits.length){container.innerHTML=`<div class="empty-stat">Add habits on the Today page to see breakdown.</div>`;return;}
+    const data=habits.map(h=>({
+      h,rate:computeHabitRate(h.id),streak:computeHabitStreak(h.id)
+    })).sort((a,b)=>b.rate-a.rate);
+    container.innerHTML='';
+    data.forEach(({h,rate,streak})=>{
+      const color=rate>=75?'var(--accent)':rate>=40?'var(--gold)':'#ff6b6b';
+      const row=document.createElement('div');row.className='habit-stat-row';
+      row.innerHTML=`
+        <div class="hsr-info">
+          <div class="hsr-name">${h.name}</div>
+          <div class="hsr-cat">${h.category}</div>
+        </div>
+        <div class="hsr-bar-wrap"><div class="hsr-bar-fill" style="width:${rate}%;background:${color};"></div></div>
+        <div class="hsr-pct" style="color:${color};">${rate}%</div>
+        <div class="hsr-streak">${streak>0?`${streak>=3?'🔥':''} ${streak}d`:''}</div>`;
+      container.appendChild(row);
+    });
+  }
+
+  /* ── CATEGORY BREAKDOWN ── */
+  function renderCatBreakdown(){
+    const container=document.getElementById('catBreakdown');
+    const cats={};
+    habits.forEach(h=>{
+      if(!cats[h.category])cats[h.category]={total:0,cnt:0};
+    });
+    for(const day in completions){
+      if(isFuture(day))continue;
+      habits.forEach(h=>{
+        if(!cats[h.category])cats[h.category]={total:0,cnt:0};
+        cats[h.category].total++;
+        if(completions[day]?.[h.id])cats[h.category].cnt++;
+      });
+    }
+    const entries=Object.entries(cats).map(([name,d])=>({name,pct:d.total?Math.round((d.cnt/d.total)*100):0})).sort((a,b)=>b.pct-a.pct);
+    if(!entries.length){container.innerHTML=`<div class="empty-stat">No data yet.</div>`;return;}
+    container.innerHTML='';
+    entries.forEach(({name,pct})=>{
+      const row=document.createElement('div');row.className='cat-row';
+      row.innerHTML=`
+        <div class="cat-top"><span class="cat-name">${name}</span><span class="cat-pct">${pct}%</span></div>
+        <div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${pct}%;"></div></div>`;
+      container.appendChild(row);
+    });
+  }
+
+  /* ── MONTH SELECTOR ── */
+  const monthModal=document.getElementById('monthSelectorModal');
+  document.getElementById('monthYearLabel').addEventListener('click',()=>{document.getElementById('yearDisplay').textContent=currentViewYear;renderMonthGrid();monthModal.classList.add('active');});
+  function renderMonthGrid(){
+    const grid=document.getElementById('monthsGrid');const mns=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];grid.innerHTML='';
+    mns.forEach((name,idx)=>{const btn=document.createElement('div');btn.className='month-opt'+(idx===currentViewMonth?' active-m':'');btn.textContent=name;btn.addEventListener('click',()=>{currentViewMonth=idx;renderCalendar();monthModal.classList.remove('active');});grid.appendChild(btn);});
+  }
+  document.getElementById('closeMonthSelector').addEventListener('click',()=>monthModal.classList.remove('active'));
+  document.getElementById('yearPrevBtn').addEventListener('click',()=>{currentViewYear--;document.getElementById('yearDisplay').textContent=currentViewYear;renderMonthGrid();});
+  document.getElementById('yearNextBtn').addEventListener('click',()=>{currentViewYear++;document.getElementById('yearDisplay').textContent=currentViewYear;renderMonthGrid();});
+  monthModal.addEventListener('click',e=>{if(e.target===monthModal)monthModal.classList.remove('active');});
+  document.getElementById('prevMonthBtn').addEventListener('click',()=>{if(currentViewMonth===0){currentViewMonth=11;currentViewYear--;}else currentViewMonth--;renderCalendar();});
+  document.getElementById('nextMonthBtn').addEventListener('click',()=>{if(currentViewMonth===11){currentViewMonth=0;currentViewYear++;}else currentViewMonth++;renderCalendar();});
+
+  /* ── INIT ── */
+  document.getElementById('statsDateSub').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  loadData();
+  renderTiles();
+  renderWeekBars();
+  renderSparkline();
+  renderWeekDots();
+  renderCalendar();
+  renderHabitStats();
+  renderCatBreakdown();
+</script>
+</body>
+</html>
